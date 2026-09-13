@@ -73,6 +73,7 @@ const SERVICE_GROUPS = [
 export function BookingDialog() {
   const open = useWccDialogs((s) => s.bookingOpen);
   const preset = useWccDialogs((s) => s.presetService);
+  const presetAddOn = useWccDialogs((s) => s.presetAddOnCeramic);
   const close = useWccDialogs((s) => s.closeBooking);
 
   const [step, setStep] = useState<Step>(1);
@@ -104,9 +105,13 @@ export function BookingDialog() {
       setStep(1);
       setConfirmation(null);
       setSubmitError(null);
-      if (preset) setForm((f) => ({ ...f, serviceKey: preset }));
+      setForm((f) => ({
+        ...f,
+        ...(preset ? { serviceKey: preset } : {}),
+        ...(presetAddOn !== null ? { addOnCeramic: presetAddOn } : {}),
+      }));
     }
-  }, [open, preset]);
+  }, [open, preset, presetAddOn]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -257,20 +262,28 @@ export function BookingDialog() {
                             if (!s.allowCeramicAddOn) set("addOnCeramic", false);
                           }}
                           className={cn(
-                            "flex w-full items-center justify-between gap-3 rounded-md border px-4 py-3.5 text-left transition-colors",
+                            "relative flex w-full items-center justify-between gap-3 rounded-md border px-4 py-3.5 text-left transition-colors",
                             form.serviceKey === s.key
                               ? "border-primary bg-primary/10"
                               : "border-border hover:border-primary/50",
                           )}
                         >
-                          <span>
+                          {s.popular && (
+                            <span className="absolute -top-2.5 right-4 rounded-full bg-primary px-2.5 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.18em] text-primary-foreground">
+                              Most Popular
+                            </span>
+                          )}
+                          <span className="min-w-0">
                             <span className="block text-sm font-semibold text-foreground">{s.name}</span>
-                            <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" aria-hidden="true" />
+                            <span className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
                               {s.durationHours}
                             </span>
+                            <span className="mt-1 block truncate text-xs leading-snug text-muted-foreground/80">
+                              {s.summary}
+                            </span>
                           </span>
-                          <span className="font-display text-lg font-semibold text-primary">
+                          <span className="shrink-0 font-display text-lg font-semibold text-primary">
                             {usd(s.prices[form.vehicleType])}
                           </span>
                         </button>

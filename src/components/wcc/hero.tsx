@@ -21,12 +21,15 @@ export function Hero() {
           className="h-full w-full object-cover object-center"
           fetchPriority="high"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/65 to-background/35" aria-hidden="true" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-32 sm:px-6 sm:pb-20">
-        <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-black/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-primary backdrop-blur-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-accent-teal">
+          Auto Detailing &amp; Ceramic Coating — Framingham, MA
+        </p>
+        <p className="mb-5 mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-black/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-primary backdrop-blur-sm">
           <span className="flex items-center gap-0.5" aria-hidden="true">
             {[0, 1, 2, 3, 4].map((i) => (
               <Star key={i} className="h-3.5 w-3.5 fill-primary text-primary" />

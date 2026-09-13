@@ -9,6 +9,7 @@ import { Testimonials } from "@/components/wcc/testimonials";
 import { Faq } from "@/components/wcc/faq";
 import { FinalCta } from "@/components/wcc/final-cta";
 import { SiteFooter } from "@/components/wcc/site-footer";
+import { CallFab } from "@/components/wcc/call-fab";
 import { BookingDialog } from "@/components/wcc/booking-dialog";
 import { QuestionDialog } from "@/components/wcc/question-dialog";
 
@@ -28,6 +29,7 @@ export default function Home() {
         <FinalCta />
       </main>
       <SiteFooter />
+      <CallFab />
       <BookingDialog />
       <QuestionDialog />
     </div>

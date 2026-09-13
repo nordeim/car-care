@@ -26,7 +26,7 @@ export function Difference() {
             id="difference-title"
             className="mt-3 max-w-3xl font-display text-3xl font-bold uppercase leading-tight tracking-tight sm:text-5xl"
           >
-            Real Results — Not Quick Cleanups
+            Real Results — <span className="text-accent-teal">Not Quick Cleanups</span>
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
             Most vehicles we see haven&apos;t been properly detailed in months — sometimes years. This
@@ -85,6 +85,7 @@ export function Difference() {
                 <img
                   src="/images/detail-action.webp"
                   alt="Detailer machine polishing a black car under warm studio lights"
+                  loading="lazy"
                   className="h-28 w-40 object-cover"
                 />
             </div>

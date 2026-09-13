@@ -41,7 +41,10 @@ export function Testimonials() {
         </Reveal>
       </div>
 
-      <Reveal delay={120} className="mx-auto mt-10 w-full max-w-7xl px-4 sm:px-6">
+      <Reveal
+        delay={120}
+        className="mx-auto mt-10 w-full max-w-7xl px-4 sm:px-6 xl:px-20"
+      >
         <Carousel
           opts={{ align: "start", loop: true }}
           aria-label="Customer reviews carousel"
@@ -70,8 +73,16 @@ export function Testimonials() {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="left-1 h-11 w-11 border-border bg-background/80 text-foreground hover:bg-accent" aria-label="Previous reviews" />
-          <CarouselNext className="right-1 h-11 w-11 border-border bg-background/80 text-foreground hover:bg-accent" aria-label="Next reviews" />
+          {/* Arrows live in the outer gutter (xl+) so they never cover card
+              text; below xl the carousel is swipe/drag + keyboard driven. */}
+          <CarouselPrevious
+            className="max-xl:hidden h-11 w-11 border-border bg-background/90 text-foreground shadow-md backdrop-blur-sm hover:bg-accent"
+            aria-label="Previous reviews"
+          />
+          <CarouselNext
+            className="max-xl:hidden h-11 w-11 border-border bg-background/90 text-foreground shadow-md backdrop-blur-sm hover:bg-accent"
+            aria-label="Next reviews"
+          />
         </Carousel>
       </Reveal>
     </section>

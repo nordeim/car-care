@@ -21,7 +21,7 @@ export function InteriorOnly() {
             id="interior-title"
             className="mt-3 font-display text-3xl font-bold uppercase leading-tight tracking-tight sm:text-5xl"
           >
-            Only Need the Interior Done?
+            Only Need the <span className="text-accent-teal">Interior</span> Done?
           </h2>
         </Reveal>
 

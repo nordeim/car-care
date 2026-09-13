@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Oswald, Archivo } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import { BUSINESS, SERVICE_AREAS } from "@/data/wcc/content";
 
 const oswald = Oswald({

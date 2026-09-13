@@ -10,37 +10,47 @@ Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.
 |---|---|
 | `bun install` | Install dependencies |
 | `bun run dev` | Dev server on :3000, output tee'd to `dev.log` |
-| `bun run build` | Prod build **and** copies `static` + `public` into `.next/standalone/` — the copy step is required for `start` to work |
+| `bun run build` | Prod build **and** copies `static` + `public` into `.next/standalone/` — the copy step is required for `start` to work. TypeScript errors **fail** this build |
 | `bun run start` | Runs `.next/standalone/server.js` under bun with `NODE_ENV=production`, logs to `server.log` |
+| `npm test` | Vitest — 49 unit tests (`npm run test:watch` for watch mode) |
 | `bun run lint` | ESLint 9 flat config |
-| `bunx tsc --noEmit` | Typecheck — **run this yourself**; see Gotchas |
+| `bunx tsc --noEmit` | Typecheck — clean by default now (reference dirs excluded) |
 | `bun run db:push` | Push Prisma schema to SQLite (`--accept-data-loss` is part of the script) |
 | `bun run db:generate` | Regenerate Prisma client after schema edits |
 | `bun run db:migrate` / `db:reset` | Prisma migrate dev / reset |
 
-There is **no test suite**. Verification = `bun run lint` + `bunx tsc --noEmit` + manual booking-flow E2E + `curl` the APIs.
+**Verification gate before every commit**: `npm test` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
 
 ## Architecture
 
-- **Content lives in one file**: `src/data/wcc/content.ts` — all services, prices, service areas, business facts, FAQs, testimonials. Change pricing/copy there, never in components. `BOOKABLE_SERVICES` is derived from `PACKAGES` / `CERAMIC_TIERS` / `INTERIOR_ONLY` — don't hand-edit it.
+- **Content lives in one file**: `src/data/wcc/content.ts` — all services, prices, service areas, business facts, FAQs, testimonials. Change pricing/copy there, never in components. `BOOKABLE_SERVICES` is derived from `PACKAGES` / `CERAMIC_TIERS` / `INTERIOR_ONLY` (now with one-line `summary` + `popular` flags) — don't hand-edit it.
 - **Booking logic**: `src/lib/wcc/booking.ts` (`findService`, `quoteFor` — ceramic add-on is flat $200, `buildDayOptions` — Sun closed, 6 slots/day).
-- **Dialog state**: zustand store `src/lib/wcc/booking-store.ts` (`useWccDialogs`), **not** React Context. Any component can call `openBooking("premium-full")`.
-- **APIs**: `src/app/api/{bookings,questions}/route.ts` — POST-only, zod validation → honeypot check → IP rate limit (5 req / 10 min, in-memory) → business rules (Sunday closed; address required for mobile/pickup) → Prisma insert. Honeypot field is `company`: filled ⇒ fake `201` success, no row written.
-- **DB**: SQLite at `db/custom.db` (tracked in repo), `DATABASE_URL` in `.env` (gitignored). Prisma client is a `globalThis` singleton with `log: ['query']` in dev.
+- **Date rules**: `src/lib/wcc/dates.ts` — timezone-safe `isSunday` / `isWithinBookingWindow` (weekday derived from the ISO string via UTC, "today" from `America/New_York` via `Intl`). Never use `new Date(iso).getDay()` (host-TZ dependent) for business rules.
+- **Validation schemas**: `src/lib/wcc/schemas.ts` — the zod schemas for bookings + questions. Single source of truth; the API routes import from here. Update tests in `src/lib/wcc/__tests__/schemas.test.ts` when changing fields.
+- **Rate limiting**: `src/lib/wcc/rate-limit.ts` — `SlidingWindowRateLimiter` (5 req / 10 min per IP, prunes stale keys). Shared instances used by both routes.
+- **Dialog state**: zustand store `src/lib/wcc/booking-store.ts` (`useWccDialogs`), **not** React Context. `openBooking(serviceKey?, { addOnCeramic?: boolean })` — the second arg powers the "Smart Add-On" preselect.
+- **APIs**: `src/app/api/{bookings,questions}/route.ts` — POST-only, zod validation → honeypot check → rate limit → business rules (Sunday closed; address required for mobile/pickup) → Prisma insert. Honeypot field is `company`: filled ⇒ fake `201` success, no row written.
+- **DB**: SQLite at `db/custom.db` (**gitignored — never commit customer PII**), `DATABASE_URL` in `.env`. Prisma client is a `globalThis` singleton; `log: ['query']` runs in dev only.
 - **Route handler** `src/app/api/route.ts` is template scaffolding (hello world) — unused.
 
 ## Styling
 
-Tailwind **v4 CSS-first**: tokens are `@theme inline` + `:root` in `src/app/globals.css`. A legacy `tailwind.config.ts` also exists (scaffold) — real tokens are in CSS. Site is dark-first (`<html className="dark">`, hardcoded). Fonts: Oswald (display, `font-display` class) + Archivo (body) via `next/font`, CSS vars `--font-oswald` / `--font-archivo`. Amber brand color `#f2a61c`.
+Tailwind **v4 CSS-first**: tokens are `@theme inline` + `:root` in `src/app/globals.css` (no `tailwind.config.ts` — it was removed with the Tailwind 3 leftovers). Site is dark-first (`<html className="dark">`, hardcoded). Fonts: Oswald (display, `font-display` class) + Archivo (body) via `next/font`, CSS vars `--font-oswald` / `--font-archivo`. Two-tone accent system: amber `--primary` `#f2a61c` for CTAs/numbers, teal `--accent-teal` `#5eead4` for keyword highlights (`text-accent-teal`).
+
+## Tests
+
+Vitest (`vitest.config.ts`, node env, `@/` alias). `src/lib/wcc/__tests__/` holds the suites: `booking.test.ts` (pricing/slots regression locks), `dates.test.ts` (timezone-safe rules), `schemas.test.ts` (accept/reject matrix), `rate-limit.test.ts` (window + prune), `booking-store.test.ts` (dialog presets). Run green under UTC / America/New_York / Asia/Singapore — keep it that way when touching date logic.
 
 ## Gotchas
 
-- `next.config.ts` has `typescript.ignoreBuildErrors: true` and `reactStrictMode: false` — **build will not fail on type errors**, always run `bunx tsc --noEmit` before pushing.
+- `next.config.ts` now has `typescript.ignoreBuildErrors: false` and `reactStrictMode: true` — the build enforces types; keep `tsc --noEmit` clean anyway (it checks more than the build).
 - ESLint ignores: `foundation/**`, `scripts/**`, `examples/**`, `skills`, plus build dirs. Many rules are off (sandbox template defaults).
-- `foundation/`, `upload/`, `tool-results/`, `skills/`, `download/` are sandbox-local and gitignored — never import from or commit them.
+- `foundation/`, `upload/`, `tool-results/`, `skills/`, `download/`, `db/` are sandbox-local or runtime artifacts and gitignored — never import from or commit them.
 - `examples/websocket/` and `tests/*.sh` are template scaffolding, unrelated to the site.
 - Long date/time strings in the booking dialog come from `buildDayOptions`; the API re-validates everything — client-side checks are UX only.
 - Confirmation codes (`WCC-XXXXXX`) are the **last 6 chars of the Prisma cuid**, generated server-side.
+- Toasts: use `sonner` (`import { toast } from "sonner"`). The sonner `<Toaster />` is mounted in `layout.tsx`; the old radix toast system was removed. Calling `useToast` will fail — it no longer exists.
+- Only 9 shadcn primitives remain in `src/components/ui/` (accordion, button, carousel, dialog, input, label, sheet, sonner, textarea). If you need another, add it with the shadcn CLI and its dependency — don't resurrect removed files from git history unless you also restore the dep.
 
 ## Git
 
@@ -49,4 +59,4 @@ Tailwind **v4 CSS-first**: tokens are `@theme inline` + `:root` in `src/app/glob
   ```bash
   GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" git push origin main
   ```
-- `.env`, `worklog.md`, SSH keys must never be committed (already gitignored).
+- `.env`, `worklog.md`, `db/*.db`, SSH keys must never be committed (already gitignored).

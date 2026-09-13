@@ -26,7 +26,7 @@ export function CeramicUpsell() {
             id="ceramic-title"
             className="mt-3 max-w-4xl font-display text-3xl font-bold uppercase leading-tight tracking-tight sm:text-5xl"
           >
-            A Great Detail Is Step One.
+            A Great Detail Is <span className="text-accent-teal">Step One.</span>
             <br />
             <span className="text-primary">This Is What Makes It Last.</span>
           </h2>

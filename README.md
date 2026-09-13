@@ -1,6 +1,6 @@
 # We Care Car Care — car-care
 
-![Next.js](https://img.shields.io/badge/Next.js-16.1-000000?style=flat-square&logo=next.js)
+![Next.js](https://img.shields.io/badge/Next.js-16.3-000000?style=flat-square&logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
@@ -12,7 +12,7 @@ Marketing and booking site for **We Care Car Care** — an eco-friendly auto det
 
 ## Overview
 
-A single-page site built to convert local search traffic into detail appointments. It presents the service menu (full details, ceramic coating tiers, interior-only) with sedan/SUV pricing, a drag-to-compare before/after slider, reviews, and FAQs — then funnels visitors into a 4-step booking dialog that validates input, enforces business rules (closed Sundays, address required for mobile service), and persists the request to SQLite. A lighter "ask a question" dialog captures inquiries that aren't ready to book. The design is a dark, warm-charcoal automotive aesthetic with an amber accent, built dark-first rather than themed.
+A single-page site built to convert local search traffic into detail appointments. It presents the service menu (full details, ceramic coating tiers, interior-only) with always-visible sedan + SUV pricing, a drag-to-compare before/after slider, reviews, and FAQs — then funnels visitors into a 4-step booking dialog that validates input, enforces business rules (closed Sundays — timezone-safe, address required for mobile service), and persists the request to SQLite. A lighter "ask a question" dialog captures inquiries that aren't ready to book. The design is a dark, warm-charcoal automotive aesthetic with a two-tone amber + teal accent system, built dark-first rather than themed.
 
 ## Key Features
 
@@ -20,24 +20,27 @@ A single-page site built to convert local search traffic into detail appointment
 |---|---|
 | 📄 Single-page marketing site | 9 composed sections (hero → FAQ → final CTA) on one route, sticky header with mobile sheet nav |
 | 🔀 Drag-compare before/after | Pointer-driven slider; the "before" half is the same photo behind a dirty-vision CSS filter |
-| 💰 Dual pricing | Every package priced per sedan/SUV with a live toggle |
-| 📅 4-step booking dialog | Service → date/time → contact → confirm, with server-quoted price and `WCC-XXXXXX` confirmation code |
-| 🛡️ API hardening | Zod validation, honeypot bot trap (fake success), sliding-window IP rate limit (5 req / 10 min) |
+| 💰 Dual pricing | Every package card shows sedan + SUV prices side by side (no toggle to hunt for); the booking dialog keeps its own vehicle selector |
+| 📅 4-step booking dialog | Service (with per-service summaries + Most Popular badge) → date/time → contact → confirm, with server-quoted price and `WCC-XXXXXX` confirmation code |
+| 🛡️ API hardening | Zod validation (schemas shared client/server), honeypot bot trap (fake success), sliding-window IP rate limit (5 req / 10 min) — timezone-safe Sunday/window rules |
 | 🗄️ Lead persistence | Booking + Question models in SQLite via Prisma; reviewable in Prisma Studio |
 | ✨ Motion with respect | IntersectionObserver scroll reveals, CTA shine sweep — all disabled under `prefers-reduced-motion` |
-| 🔍 Local SEO | Full metadata, OG/Twitter cards, JSON-LD `AutoWash` schema (address, geo, hours, service areas, rating) |
+| 📱 Mobile call FAB | Floating call button appears after scrolling past the hero (mobile only) |
+| 🧪 Unit tests | Vitest suite (49 tests) covering pricing/date logic, validation schemas, rate limiter, dialog store — run under multiple timezones |
+| 🔍 Local SEO | Full metadata, OG/Twitter cards, JSON-LD `AutoWash` schema (address, geo, hours, service areas, rating), `sitemap.xml`, app icon |
 
 ## Architecture
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| Web framework | Next.js (App Router) | 16.1.3 | Single route + route handlers, standalone output |
+| Web framework | Next.js (App Router) | 16.3.5 | Single route + route handlers, standalone output |
 | UI runtime | React | 19.2.3 | Server components + client islands |
 | Language | TypeScript | 5.9.3 | Strict types across content/data/API |
 | Styling | Tailwind CSS | 4.1.18 | CSS-first tokens in `globals.css` |
-| UI primitives | shadcn/ui (Radix) | — | Dialog, sheet, accordion, carousel… |
-| State | Zustand | 5.0.10 | Dialog orchestration store |
-| Validation | Zod | 4.3.5 | API request schemas |
+| UI primitives | shadcn/ui (Radix) | — | Dialog, sheet, accordion, carousel, sonner |
+| State | Zustand | 5.0.x | Dialog orchestration store |
+| Validation | Zod | 4.x | API request schemas (`src/lib/wcc/schemas.ts`) |
+| Tests | Vitest | 3.x | Unit suite over lib logic + schemas + store |
 | ORM | Prisma | 6.19.2 | Schema + client |
 | Database | SQLite | — | Single-file persistence (`db/custom.db`) |
 | Package manager / runtime | bun | 1.3.x | Installs, dev server, prod server |
@@ -66,19 +69,19 @@ flowchart TB
  ┃ ┣ 📄 page.tsx — the single page: section composition
  ┃ ┗ 📄 globals.css — Tailwind 4 tokens, brand utilities (.grain, .shine, [data-reveal])
  ┣ 📂 components
- ┃ ┣ 📂 wcc — 15 site components (hero, packages, booking-dialog 632 LOC, …)
- ┃ ┗ 📂 ui — 48 shadcn primitives
+ ┃ ┣ 📂 wcc — 16 site components (hero, packages, booking-dialog, call-fab, …)
+ ┃ ┗ 📂 ui — 9 shadcn primitives (accordion, button, carousel, dialog, input, label, sheet, sonner, textarea)
  ┣ 📂 data/wcc — 📄 content.ts — ALL services, prices, areas, FAQs, business facts
- ┣ 📂 hooks — use-mobile, use-toast
  ┗ 📂 lib
-    ┣ 📂 wcc — booking.ts (pricing/slots), booking-store.ts (zustand dialogs)
-    ┣ 📄 db.ts — Prisma singleton
+    ┣ 📂 wcc — booking.ts (pricing/slots) · booking-store.ts (zustand) · schemas.ts (zod)
+    ┣        rate-limit.ts · dates.ts (timezone-safe rules) · __tests__/ (vitest)
+    ┣ 📄 db.ts — Prisma singleton (query logging dev-only)
     ┗ 📄 utils.ts — cn()
 📂 prisma — 📄 schema.prisma — Booking, Question models
-📂 db — 📄 custom.db — committed SQLite preview database
+📂 db — runtime SQLite (gitignored; created by db:push)
 📂 public — logo.svg, robots.txt, 📂 images (6 generated WebP assets)
 📂 scripts — image generation / optimization / visual-check helpers
-📂 docs — project prompt, skill docs, SSH git wrapper, build archives
+📂 docs — project prompt, skill docs, SSH git wrapper, audit + remediation plan
 ```
 
 ## Quick Start
@@ -103,7 +106,16 @@ bun run dev
 1. Open `http://localhost:3000` — the We Care Car Care landing page renders with the hero image and pricing sections.
 2. Click any **Book Now** CTA, walk all 4 steps, submit — you get a `WCC-XXXXXX` confirmation.
 3. `bunx prisma studio` → your row is in the `Booking` table.
-4. `bun run lint` exits clean.
+4. `bun run lint` exits clean; `npm test` passes (49 tests).
+
+### Tests
+
+```bash
+npm test            # vitest run — 49 unit tests
+npm run test:watch  # watch mode
+```
+
+The suite covers pricing/quote logic, day-slot generation, timezone-safe Sunday/window rules, zod schemas, the shared rate limiter, and the dialog store. It is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore`.
 
 ### Production build
 
@@ -134,7 +146,8 @@ That is the only variable. There are no auth keys or third-party services.
 |-------|-------|-------|
 | `--background` | `#0a0b0d` | Page background (warm charcoal) |
 | `--foreground` | `#f2f0ea` | Body text (warm off-white) |
-| `--primary` | `#f2a61c` | Amber — CTAs, links, highlights |
+| `--primary` | `#f2a61c` | Amber — CTAs, links, key numbers |
+| `--accent-teal` | `#5eead4` | Teal — keyword highlights in section headlines (two-tone system; ≈13:1 on background) |
 | `--card` | `#121417` | Card surfaces |
 | `--muted-foreground` | `#9c9a92` | Secondary text |
 | `--destructive` | `#e5484d` | Errors |
@@ -145,9 +158,10 @@ That is the only variable. There are no auth keys or third-party services.
 
 | Phase | Status | Key Deliverables |
 |-------|--------|------------------|
-| Site build (page + booking flow + APIs + SEO) | ✅ Done | 15 site components, 2 APIs, Prisma schema, brand system |
+| Site build (page + booking flow + APIs + SEO) | ✅ Done | 16 site components, 2 APIs, Prisma schema, brand system |
 | Verification (lint, typecheck, E2E booking, API contract, mobile 375px) | ✅ Done | Booking E2E persisted + cleaned; honeypot returns fake success |
-| Automated test suite | ❌ Not started | No jest/vitest/playwright config exists |
+| Audit + remediation (visual parity, security, tests) | ✅ Done | See `docs/audit-and-remediation-2026-09.md` — Next 16.3.5, dep pruning, dual pricing, teal accent system, toast fix, FAB |
+| Automated test suite | ✅ Done | Vitest — 49 unit tests over lib/schemas/store |
 | Admin surface for leads | ❌ Not started | Owner reviews leads via Prisma Studio |
 
 ## Troubleshooting
@@ -155,7 +169,7 @@ That is the only variable. There are no auth keys or third-party services.
 | Issue | Cause / Fix |
 |-------|------------|
 | `bun run start` serves missing styles/images | The `build` script must copy `static`/`public` into `.next/standalone/` — run `bun run build` (not `next build` alone) |
-| Type errors don't fail the build | `next.config.ts` sets `typescript.ignoreBuildErrors: true` — run `bunx tsc --noEmit` manually |
+| Type errors don't fail the build | Fixed — `ignoreBuildErrors` is now `false`; `bunx tsc --noEmit` and `bun run build` both enforce types |
 | 429 while testing the booking API | In-memory rate limit (5 req / 10 min per IP) — restart the dev server to reset |
 | `@prisma/client did not initialize` | Run `bun run db:generate` after cloning or editing the schema |
 | Sunday date rejected | Intentional: the shop is closed Sundays (both UI and API enforce it) |
@@ -163,7 +177,8 @@ That is the only variable. There are no auth keys or third-party services.
 ## Contributing
 
 - Keep all business facts in `src/data/wcc/content.ts` — components and API both derive from it.
-- Before every commit: `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
+- Before every commit: `npm test` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
+- Keep `db/` untracked (PII). `bun run db:push` recreates `db/custom.db` locally after cloning.
 - Conventional Commits on `main`; keep commits atomic.
 
 ## License

@@ -9,7 +9,7 @@ last_updated: 2026-09-13
 
 Customer-facing marketing and booking site for **We Care Car Care**, an auto detailing and ceramic coating studio in Framingham, MA (MetroWest Boston). One page sells the services; a 4-step dialog turns visitors into persisted booking requests; a question dialog captures inquiries. No accounts, no admin surface — leads land in SQLite for the owner to action.
 
-**Tech Stack**: Next.js 16 (App Router, standalone output), React 19, TypeScript 5.9, Tailwind CSS 4, shadcn/ui (Radix), Prisma 6 + SQLite, Zustand 5, Zod 4, bun 1.3.
+**Tech Stack**: Next.js 16.3 (App Router, standalone output), React 19, TypeScript 5.9, Tailwind CSS 4, shadcn/ui (Radix), Prisma 6 + SQLite, Zustand 5, Zod 4, Vitest 3, bun 1.3.
 
 ## Core Identity & Purpose
 
@@ -42,7 +42,7 @@ Customer-facing marketing and booking site for **We Care Car Care**, an auto det
 - App Router, `src/app/` layout; the site is a single route (`page.tsx`) composing server components; dialogs are client islands.
 - Route handlers in `src/app/api/{resource}/route.ts` — POST-only for form submissions.
 - Fonts via `next/font/google` (Oswald, Archivo) exposed as CSS variables; Metadata API + JSON-LD `AutoWash` schema in `layout.tsx` — update structured data together with `content.ts` facts.
-- `next.config.ts`: `output: "standalone"`; `reactStrictMode: false`.
+- `next.config.ts`: `output: "standalone"`; `typescript.ignoreBuildErrors: false` (build enforces types); `reactStrictMode: true`.
 
 ### React 19 / TypeScript
 
@@ -53,8 +53,8 @@ Customer-facing marketing and booking site for **We Care Car Care**, an auto det
 
 ### Tailwind CSS 4
 
-- **CSS-first**: tokens live in `@theme inline` + `:root` in `src/app/globals.css` (`--background: #0a0b0d`, `--primary: #f2a61c`, …). Extend the CSS variables, not a JS config.
-- A legacy `tailwind.config.ts` exists (template artifact); the operative tokens are in CSS.
+- **CSS-first**: tokens live in `@theme inline` + `:root` in `src/app/globals.css` (`--background: #0a0b0d`, `--primary: #f2a61c`, `--accent-teal: #5eead4`, …). Extend the CSS variables, not a JS config (`tailwind.config.ts` was removed).
+- Two-tone accent system: amber `--primary` for CTAs/key numbers; teal `--accent-teal` (`text-accent-teal`) for keyword highlights in headlines.
 - Brand utilities: `.font-display`, `.grain`, `.shine`, `[data-reveal]` — defined in `globals.css`.
 
 ### Component Conventions
@@ -80,26 +80,30 @@ bun run dev
 | Command | Purpose |
 |---------|---------|
 | `bun run dev` | Dev server on :3000 (output tee'd to `dev.log`) |
-| `bun run build` | Prod build + copies `static`/`public` into `.next/standalone/` |
+| `bun run build` | Prod build + copies `static`/`public` into `.next/standalone/` — type errors fail the build |
 | `bun run start` | Serve standalone build with bun (`server.log`) |
+| `npm test` | Vitest unit suite (49 tests) |
 | `bun run lint` | ESLint 9 (flat config) |
-| `bunx tsc --noEmit` | Type check — mandatory because builds skip type errors |
+| `bunx tsc --noEmit` | Type check — mandatory |
 | `bun run db:push` | Apply `prisma/schema.prisma` to SQLite (accepts data loss) |
 | `bun run db:generate` | Regenerate Prisma client |
 
 ### Database (Prisma + SQLite)
 
-- Models: `Booking`, `Question` (`prisma/schema.prisma`). Client singleton in `src/lib/db.ts` (query logging in dev).
-- Inspect data with `bunx prisma studio`. `db/custom.db` is committed as the seeded preview DB.
+- Models: `Booking`, `Question` (`prisma/schema.prisma`). Client singleton in `src/lib/db.ts` (query logging dev-only).
+- Inspect data with `bunx prisma studio`. `db/custom.db` is a **runtime artifact, gitignored** — never commit it (customer PII).
 
 ## Testing Strategy
 
-**No automated test suite exists.** Before delivering changes:
+**Vitest unit suite** in `src/lib/wcc/__tests__/` (`npm test`, 49 tests): pricing/quote logic, day-slot generation, **timezone-safe date rules** (verify under multiple `TZ`), zod schemas (accept/reject matrix), the shared rate limiter, and the dialog store. Use TDD for logic changes: write the failing test first (`RED`), implement (`GREEN`), refactor with the suite green.
+
+Before delivering changes:
 
 ```bash
-bun run lint                # lint clean
-bunx tsc --noEmit           # type clean (build does NOT check types)
-bun run build               # standalone build succeeds
+npm test                 # unit suite green
+bun run lint             # lint clean
+bunx tsc --noEmit        # type clean
+bun run build            # standalone build succeeds (types enforced)
 ```
 
 Then manual E2E: open `/`, run the booking dialog end-to-end (service → date/time → contact → confirm), expect a `WCC-XXXXXX` confirmation and a row in `db.booking`. API-level checks:
@@ -130,7 +134,7 @@ GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25
 ## Error Handling & Debugging
 
 - API failures: zod issues surface as `422 {error, issues[]}`; DB failures log to console with a `[api/<route>]` prefix and return `500` with a call-the-shop message.
-- Client: `sonner` toasts for submit outcomes; `booking-dialog.tsx` keeps inline `submitError` state.
+- Client: `sonner` toasts for submit outcomes (sonner `<Toaster />` mounted in `layout.tsx`); `booking-dialog.tsx` keeps inline `submitError` state.
 - Dev server output lands in `dev.log` (tail it). Prisma logs every query in dev.
 - Rate limit is in-memory per process — restarting dev resets it.
 
@@ -146,7 +150,7 @@ GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25
 
 - Single page (`src/app/page.tsx`) composes 9 section components + 2 global dialogs mounted once.
 - Data flow: `content.ts` → components (render) and API routes (validation/pricing) — one source for both.
-- Dialog orchestration via `useWccDialogs` zustand store; CTAs anywhere can `openBooking(serviceKey?)`.
+- Dialog orchestration via `useWccDialogs` zustand store; CTAs anywhere can `openBooking(serviceKey?, { addOnCeramic? })` (the options object powers the Smart Add-On preselect).
 
 ### API Design
 
@@ -156,7 +160,7 @@ GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25
 | `/api/questions` | POST | none | zod → honeypot → rate limit → persist; returns `{ok}` |
 | `/api` | GET | none | template hello-world, unused |
 
-Server-computed rules (do not trust the client): Sunday closure, address required for `mobile`/`pickup`, service key must exist, date within next 60 days, price quote recomputed server-side via `quoteFor`.
+Server-computed rules (do not trust the client): Sunday closure (**timezone-safe** — weekday derived from the ISO date, "today" from `America/New_York`; see `src/lib/wcc/dates.ts`), address required for `mobile`/`pickup`, service key must exist, date within next 60 days, price quote recomputed server-side via `quoteFor`.
 
 ### Data Layer
 
@@ -175,4 +179,5 @@ Server-computed rules (do not trust the client): Sunday closure, address require
 - **Trusting client validation** — the API re-validates; keep it that way.
 - **Changing the honeypot to return an error** — fake-success is intentional (bots learn nothing).
 - **Adding auth/CMS/payment layers speculatively** — the owner actions leads manually by design.
-- **Skipping `tsc --noEmit`** — `ignoreBuildErrors: true` means type errors ship silently otherwise.
+- **Host-timezone date math** — never `new Date(iso).getDay()` for business rules; use `src/lib/wcc/dates.ts` (UTC-parsed ISO strings + `Intl` business-tz "today").
+- **Re-adding removed deps** — 44 unused template packages (next-auth, dnd-kit, recharts, framer-motion…) and 39 unused ui primitives were pruned for security and audit noise; re-add only with a concrete use case.

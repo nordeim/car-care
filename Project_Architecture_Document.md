@@ -9,11 +9,12 @@
 
 ---
 
-#### Revision Block — v1.0.0 (Tracked Changes)
+#### Revision Block — v1.1.0 (Tracked Changes)
 
-- `[SYN]` Initial PAD generated from full codebase analysis (all 15 site components, 3 API routes, Prisma schema, styling system, build scripts).
+- `[MA]` v1.1.0 — post-audit remediation: Next 16.3.5 security upgrade, 44 unused dependencies + 39 unused ui primitives pruned, tsconfig scoping + build type enforcement, `db/custom.db` untracked, Vitest suite (49 tests) introduced, timezone-safe date rules, shared rate-limit/schemas modules, toast wiring fix (sonner), two-tone amber+teal accent system, dual sedan/SUV pricing in cards, package card imagery, FAQ card styling, final-CTA imagery, mobile call FAB, app icon + sitemap. Full audit trail in `docs/audit-and-remediation-2026-09.md`.
+- `[CA]` Known-issues table includes honest gaps rather than aspirational claims.
+- `[SYN]` v1.0.0 — initial PAD generated from full codebase analysis (15 site components, 3 API routes, Prisma schema, styling system, build scripts).
 - `[SR]` All dependency versions pinned from `bun.lock`; all commands verified against `package.json` scripts.
-- `[CA]` Known-issues table includes honest gaps (no automated tests, tracked SQLite file) rather than aspirational claims.
 
 ### Table of Contents
 
@@ -42,18 +43,18 @@ This is the single source of truth for how the car-care codebase is built, why i
 
 | Layer | Technology | Version | Key Rationale |
 |-------|-----------|---------|---------------|
-| Web framework | Next.js (App Router) | 16.1.3 | Single route + route handlers in one deployable; RSC keeps the page light with client islands only where interactive |
+| Web framework | Next.js (App Router) | 16.3.5 | Single route + route handlers in one deployable; RSC keeps the page light with client islands only where interactive; upgraded from 16.1.3 for security advisories (ADR-008) |
 | UI runtime | React | 19.2.3 | Required by Next 16; ref-prop components, no forwardRef boilerplate |
 | Language | TypeScript | 5.9.3 | Content-as-data pattern (§3.3) only holds with strict typing |
 | Styling | Tailwind CSS | 4.1.18 | CSS-first tokens colocate the brand system with its utilities |
-| UI primitives | shadcn/ui (Radix) | 48 components vendored | Dialog/sheet/accordion/carousel for free; fully owned code |
-| State | Zustand | 5.0.10 | 23-line dialog store beats Context boilerplate (ADR-004) |
-| Validation | Zod | 4.3.5 | One schema per endpoint; server is the authority |
+| UI primitives | shadcn/ui (Radix) | 9 components vendored | Only the load-bearing set survives the dependency prune: accordion, button, carousel, dialog, input, label, sheet, sonner, textarea (ADR-008) |
+| State | Zustand | 5.0.x | 30-line dialog store beats Context boilerplate (ADR-004) |
+| Validation | Zod | 4.3.5 | One schema per endpoint in `src/lib/wcc/schemas.ts`; server is the authority |
+| Tests | Vitest | 3.x | 49-test unit suite over lib logic, schemas, rate limiter, store (ADR-009) |
 | ORM | Prisma | 6.19.2 | Typed models + `db:push` workflow fits single-file SQLite |
-| Database | SQLite | (file: `db/custom.db`) | Zero-ops persistence for a single-operator local business |
-| Animation | framer-motion | 12.26.2 | Testimonial/carousel motion primitives |
+| Database | SQLite | (file: `db/custom.db`, gitignored) | Zero-ops persistence for a single-operator local business |
 | Carousel | embla-carousel-react | 8.6.0 | Lightweight testimonial carousel |
-| Toasts | sonner | 2.0.7 | Submit feedback in dialogs |
+| Toasts | sonner | 2.x | Submit feedback in dialogs (`<Toaster />` mounted in layout) |
 | Package manager / runtime | bun | 1.3.x | Install + dev + prod server in one toolchain |
 | Lint | ESLint (flat config) | 9.39.2 | `next/core-web-vitals` + `next/typescript` presets |
 | Proxy | Caddy | `:81` (sandbox) | Reverse proxy to Next standalone server on `:3000` |
@@ -87,7 +88,7 @@ This is the single source of truth for how the car-care codebase is built, why i
 **ADR-004: Zustand for dialog orchestration over React Context or URL state**
 
 - **Context:** Eleven CTAs across the page must open the booking dialog, several with a preselected service; the question dialog can open from hero and footer.
-- **Decision:** A 23-line Zustand store (`src/lib/wcc/booking-store.ts`) holds `bookingOpen`, `presetService`, `questionOpen` plus open/close actions; any component subscribes with a selector.
+- **Decision:** A compact Zustand store (`src/lib/wcc/booking-store.ts`, ~38 lines) holds `bookingOpen`, `presetService`, `presetAddOnCeramic`, `questionOpen` plus open/close actions; any component subscribes with a selector.
 - **Rationale:** No provider to mount, no re-render cascade (selector-based subscriptions), preset service flows through `openBooking(serviceKey?)` naturally. Context would require a provider wrapper and re-render every consumer on every open/close.
 - **Consequences:** Positive — minimal API, works outside the React tree if needed. Negative — one more dependency; state is not visible in the URL (back button does not close the dialog — acceptable for this UX).
 - **Alternatives Rejected:** React Context (provider + render cost for a global boolean); URL query state (pollutes anchors); lifting state to `page.tsx` (prop drilling).
@@ -108,13 +109,29 @@ This is the single source of truth for how the car-care codebase is built, why i
 - **Consequences:** Positive — small artifact, one-command prod, no Docker needed. Negative — the static/public copy step is manual and easy to forget (documented as a troubleshooting item); dev (`next dev`) and prod (standalone) have slightly different module resolution.
 - **Alternatives Rejected:** `next start` (needs full node_modules); Docker (no orchestrator here); Vercel (fine, but self-hosted bun is cheaper and matches the sandbox).
 
-**ADR-007: Dark-first hardcoded theme, brand tokens in CSS `:root`**
+**ADR-007: Dark-first hardcoded theme, brand tokens in CSS `:root`, two-tone accent system**
 
-- **Context:** The brand is automotive-detailing dark (charcoal + amber). A light mode was never requested and would double the QA surface.
-- **Decision:** `<html className="dark" suppressHydrationWarning>` is hardcoded in `layout.tsx`; all colors are HSL/hex custom properties in `:root` (`globals.css`) mapped through Tailwind 4's `@theme inline`. No `next-themes` toggle is wired even though the package exists in `package.json`.
-- **Rationale:** One theme, tested once. Tokens in CSS (not a JS config) keep Tailwind 4's CSS-first model authoritative — see Known Issues for the legacy `tailwind.config.ts` note.
-- **Consequences:** Positive — zero flash-of-wrong-theme, one contrast surface to audit. Negative — adding light mode later requires tokenizing every custom hex.
-- **Alternatives Rejected:** next-themes toggle (unwanted UX surface); styled-components/other-in-JS (Tailwind already present).
+- **Context:** The brand is automotive-detailing dark (charcoal + amber + teal). A light mode was never requested and would double the QA surface. The source site uses a two-tone accent (amber CTAs + teal keyword highlights) that the first build flattened to amber-only.
+- **Decision:** `<html className="dark" suppressHydrationWarning>` is hardcoded in `layout.tsx`; all colors are HSL/hex custom properties in `:root` (`globals.css`) mapped through Tailwind 4's `@theme inline`. Amber `--primary` `#f2a61c` for CTAs and key numbers; teal `--accent-teal` `#5eead4` (≈13:1 on background) for keyword highlights in section headlines via `text-accent-teal`. The legacy `tailwind.config.ts` and `next-themes` dependency were **removed** in v1.1.0.
+- **Rationale:** One theme, tested once. Tokens in CSS (not a JS config) keep Tailwind 4's CSS-first model authoritative. The teal accent restores the source site's two-tone visual rhythm without a second interactive color.
+- **Consequences:** Positive — zero flash-of-wrong-theme, one contrast surface to audit, richer headline hierarchy. Negative — adding light mode later requires tokenizing every custom hex.
+- **Alternatives Rejected:** next-themes toggle (unwanted UX surface; the site is dark-only so the sonner Toaster pins `theme="dark"` directly); styled-components/other-in-JS (Tailwind already present).
+
+**ADR-008: Dependency and dead-code pruning (v1.1.0 security remediation)**
+
+- **Context:** `bun audit` reported 90 vulnerabilities (3 critical, 48 high). The critical items (`next-auth` homoglyph bypass; `next@16.1.3` middleware bypass / Server Components DoS / AVIF RCE) were all reachable because template scaffolding shipped unused dependencies. 44 dependencies and 39 vendored ui primitives had zero imports from site code.
+- **Decision:** Upgrade `next` to 16.3.5 (≥16.2.5 fixes all listed advisories); remove `next-auth`, `@dnd-kit/*`, `@mdxeditor/editor`, `framer-motion`, `recharts`, `uuid`, `next-themes`, 32 unused `@radix-ui/react-*` packages and the rest; delete every `src/components/ui/` file except the nine in use; delete `tailwind.config.ts`, `hooks/use-toast.ts`, `hooks/use-mobile.ts`. Fix the discovered toast-wiring bug by mounting the sonner `<Toaster />` in `layout.tsx` (booking-dialog already called sonner `toast.success`, but only the radix toaster was mounted — the success toast never rendered).
+- **Rationale:** Unused code cannot break; unused dependencies still get CVEs. Pruning cut the audit to 27 findings, all in dev-tooling chains (eslint/babel/prisma CLI) that never enter the standalone runtime bundle.
+- **Consequences:** Positive — 0 critical/0 runtime vulns, smaller install, `bun install` faster, one toast system. Negative — re-adding a pruned primitive now means restoring its dependency too (documented in AGENTS.md).
+- **Alternatives Rejected:** Upgrading `next-auth` in place (zero imports — the fix is deletion); keeping unused ui files "for later" (they were the audit surface).
+
+**ADR-009: Vitest unit suite with timezone-verified date rules (TDD baseline)**
+
+- **Context:** The v1.0.0 audit found zero tests and a timezone bug: the Sunday-closure and 60-day-window rules parsed the ISO date in **host-local** time, so a UTC-hosted server would shift the closed-day boundary by hours away from the business's `America/New_York` calendar.
+- **Decision:** Add Vitest (node env, `@/` alias). Suites cover `quoteFor`/`buildDayOptions`/`usd`, the extracted zod schemas (`src/lib/wcc/schemas.ts`), the shared `SlidingWindowRateLimiter` (`src/lib/wcc/rate-limit.ts`), and the zustand store. Date logic moved to `src/lib/wcc/dates.ts`: weekday derived from the ISO string via UTC-midnight parsing, "today" derived from `America/New_York` via `Intl.DateTimeFormat` — both host-timezone independent. The suite is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore`.
+- **Rationale:** The API is the authority on business rules; those rules deserve executable specifications. The three-timezone run is the regression proof for the fix.
+- **Consequences:** Positive — 49 tests gate every commit (`npm test`); route handlers shrank to pipeline-only code importing shared modules. Negative — no component/E2E tests yet (dialog flow is still manually verified).
+- **Alternatives Rejected:** Jest (slower, more config); testing routes end-to-end only (slower feedback, needs a DB fixture per run); fixing the timezone bug without a test (exactly how it regresses).
 
 ---
 
@@ -223,18 +240,21 @@ car-care/
 │   │   │   ├── question-dialog.tsx     ← inquiry form
 │   │   │   ├── reveal.tsx             ← IntersectionObserver wrapper
 │   │   │   └── site-footer.tsx / difference.tsx / final-cta.tsx
-│   │   └── ui/                         ← 48 vendored shadcn primitives
+│   │   └── ui/                         ← 9 vendored shadcn primitives (v1.1.0 prune)
 │   ├── data/wcc/content.ts             ← ALL business facts (Layer 0)
-│   ├── hooks/                          ← use-mobile, use-toast
-│   └── lib/
+│   └── lib/                             ← (hooks/ removed in v1.1.0)
 │       ├── wcc/booking.ts              ← findService, quoteFor, buildDayOptions
-│       ├── wcc/booking-store.ts        ← zustand dialog store
-│       ├── db.ts                        ← Prisma singleton
+│       ├── wcc/booking-store.ts        ← zustand dialog store (+ add-on preselect)
+│       ├── wcc/schemas.ts              ← shared zod schemas (both routes)
+│       ├── wcc/rate-limit.ts           ← SlidingWindowRateLimiter
+│       ├── wcc/dates.ts                ← timezone-safe business date rules
+│       ├── wcc/__tests__/              ← vitest suites (49 tests)
+│       ├── db.ts                        ← Prisma singleton (dev-only query log)
 │       └── utils.ts                     ← cn()
 ├── docs/                               ← origin prompt, skill refs, SSH wrapper,
 │                                       └   reference build archives (read-only)
 ├── Caddyfile                           ← sandbox edge proxy config
-├── next.config.ts                      ← standalone output; ignoreBuildErrors
+├── next.config.ts                      ← standalone output; types enforced (v1.1.0)
 ├── eslint.config.mjs                   ← flat config; sandbox dirs ignored
 └── package.json / bun.lock / tsconfig.json
 ```
@@ -432,7 +452,8 @@ Both load through `next/font/google` with `subsets: ["latin"]` and land as CSS v
 |-------|-----|-------|----------------------|
 | `--background` | `#0a0b0d` | Page canvas (warm charcoal) | — |
 | `--foreground` | `#f2f0ea` | Body text | 17.3:1 (AAA) |
-| `--primary` | `#f2a61c` | CTAs, links, focus rings, highlights (signal amber) | 9.6:1 (AAA) |
+| `--primary` | `#f2a61c` | CTAs, links, focus rings, key numbers (signal amber) | 9.6:1 (AAA) |
+| `--accent-teal` | `#5eead4` | Keyword highlights in section headlines (two-tone system) | ≈13:1 (AAA) |
 | `--primary-foreground` | `#17120a` | Text on amber buttons | 9.1:1 on primary (AAA) |
 | `--card` | `#121417` | Card surfaces | — |
 | `--secondary` | `#1a1d21` | Secondary surfaces, chips | — |
@@ -441,11 +462,11 @@ Both load through `next/font/google` with `subsets: ["latin"]` and land as CSS v
 | `--border` | `rgba(255,255,255,0.09)` | Hairline borders | — |
 | `--ring` | `#f2a61c` | Focus outlines | — |
 
-Contrast ratios computed for text tokens against `--background`. The entire interactive surface passes WCAG AA at minimum; the two text/amber pairs pass AAA. The palette is deliberately narrow — one accent (amber), one warm-neutral ramp (charcoal → off-white), one semantic red.
+Contrast ratios computed for text tokens against `--background`. The entire interactive surface passes WCAG AA at minimum; the text, amber, and teal pairs pass AAA. The palette is deliberately narrow — two accents (amber for action, teal for emphasis), one warm-neutral ramp (charcoal → off-white), one semantic red.
 
 ### 5.3 Component Primitives
 
-- **shadcn/ui (48 components)** vendored under `src/components/ui/` — Radix behavior + Tailwind styling, fully owned code. Site usage: `dialog`, `sheet`, `accordion`, `carousel` (embla), `button`, `input`, `label`, `textarea` are load-bearing; the rest are template inventory for future screens.
+- **shadcn/ui (9 components)** vendored under `src/components/ui/` — Radix behavior + Tailwind styling, fully owned code: `accordion`, `button`, `carousel`, `dialog`, `input`, `label`, `sheet`, `sonner`, `textarea` (ADR-008). Re-add others via the shadcn CLI only when a screen actually needs them.
 - **Variant styling** via `class-variance-authority`; class merging via `cn()` (clsx + tailwind-merge) in `src/lib/utils.ts`.
 - **Brand utilities in CSS, not components:** `.font-display`, `.grain` (film-grain SVG-noise overlay), `.shine` (amber CTA sweep), `[data-reveal]` (scroll-in), custom thin scrollbars. These are the house style — extend the stylesheet before adding a component.
 
@@ -458,7 +479,7 @@ Contrast ratios computed for text tokens against `--background`. The entire inte
 | Carousel | Autoplay/controls (embla) | Testimonial slides | Handled by embla + reduced CSS |
 | `scroll-behavior: smooth` | Anchor nav | Eased scrolling with `scroll-padding-top: 5.5rem` (sticky-header offset) | Reverted to `auto` |
 
-Framer-motion 12 is a dependency and powers carousel-adjacent transitions; the reveal/shine system is dependency-free CSS by design.
+Framer-motion was removed with the dependency prune (ADR-008); the reveal/shine system was dependency-free CSS by design and is unchanged. Carousel motion is embla-native plus the reduced-motion CSS.
 
 ---
 
@@ -507,35 +528,40 @@ Framer-motion 12 is a dependency and powers carousel-adjacent transitions; the r
 
 | Category | Files | Automated tests | Location | Framework |
 |----------|-------|----------------|----------|-----------|
-| Unit (booking logic) | 0 | 0 | — | none configured |
-| Component (dialog flows) | 0 | 0 | — | none configured |
-| API integration | 0 | 0 | — | none configured |
-| E2E | 0 | 0 | — | none configured |
-| Manual verification protocol | 1 (this doc, §8.2) | — | — | lint + tsc + curl + browser |
+| Unit (booking logic) | 1 | 14 | `src/lib/wcc/__tests__/booking.test.ts` | Vitest |
+| Unit (date rules, timezone-safe) | 1 | 9 | `src/lib/wcc/__tests__/dates.test.ts` | Vitest |
+| Unit (zod schemas) | 1 | 15 | `src/lib/wcc/__tests__/schemas.test.ts` | Vitest |
+| Unit (rate limiter) | 1 | 6 | `src/lib/wcc/__tests__/rate-limit.test.ts` | Vitest |
+| Unit (dialog store) | 1 | 5 | `src/lib/wcc/__tests__/booking-store.test.ts` | Vitest |
+| Component (dialog flows) | 0 | 0 | — | not yet |
+| API integration | 0 | 0 | — | not yet (manual curl protocol below) |
+| E2E | 0 | 0 | — | not yet (manual browser protocol below) |
 
-**Honest status:** the repo has **no automated test suite** — no jest/vitest/playwright config exists. `tests/*.sh` are sandbox build scripts, not tests. The verification burden is carried by the protocol below; introducing vitest for `booking.ts`/`content.ts` purity would be the highest-leverage first investment (§11).
+**Status:** 49 unit tests across 5 suites (`npm test`, ~1s). The suite is part of the commit gate and is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore` (ADR-009). Component and E2E layers remain manual — the natural next investment is a Playwright spec for the 4-step dialog.
 
-### 8.2 Verification Protocol (the current "test suite")
+### 8.2 Verification Protocol (manual layers on top of the unit suite)
 
-1. **Static:** `bun run lint` (ESLint 9 flat config) and `bunx tsc --noEmit` — the typecheck is manual and **mandatory** because `next.config.ts` sets `typescript.ignoreBuildErrors: true`.
+1. **Static:** `bun run lint` (ESLint 9 flat config) and `bunx tsc --noEmit`; the production build also enforces types (`ignoreBuildErrors: false` since v1.1.0).
 2. **Build:** `bun run build` must complete including the standalone copy step.
-3. **API contract (curl):** happy path → `201` with `confirmation` matching `^WCC-[A-Z0-9]{6}$` and a row in `db.booking`; Sunday date → `422`; `serviceMode: "mobile"` without address → `422`; unknown `serviceKey` → `422`; non-empty `company` → fake `201` and **no row**; 6th rapid POST → `429`.
-4. **E2E in browser:** `/` renders; sedan/SUV toggle reprices; full 4-step dialog submits and shows the confirmation; question dialog persists; mobile viewport (375px) shows the sheet nav.
-5. **Cleanup:** delete test rows via `bunx prisma studio` — the tracked `db/custom.db` must ship empty.
+3. **API contract (curl):** happy path → `201` with `confirmation` matching `^WCC-[A-Z0-9]{6}$` and a row in `db.booking`; Sunday date → `422`; `serviceMode: "mobile"` without address → `422`; unknown `serviceKey` → `422`; date > 60 days out → `422`; non-empty `company` → fake `201` and **no row**; 6th rapid POST → `429`.
+4. **E2E in browser:** `/` renders with both sedan + SUV prices visible; full 4-step dialog submits, shows the confirmation **and the sonner toast**; question dialog persists; mobile viewport (390px) shows the sheet nav and the call FAB after scrolling.
+5. **Cleanup:** delete test rows via `bunx prisma studio` — `db/custom.db` is gitignored but keep it clean.
 
 ### 8.3 Coverage Thresholds
 
-None configured (no coverage tooling). The de facto gate is §8.2 executed before every push to `main`.
+No coverage tooling configured. The de facto gate is `npm test` + §8.2 executed before every push to `main`.
 
 ### 8.4 Pre-Deploy Checklist
 
+- [ ] `npm test` — 49+ tests green (run once under a non-UTC `TZ` if date logic changed)
 - [ ] `bun run lint` clean
-- [ ] `bunx tsc --noEmit` clean (build will not catch type errors)
+- [ ] `bunx tsc --noEmit` clean
 - [ ] `bun run build` succeeds (including static/public copy into `.next/standalone/`)
-- [ ] Manual booking E2E passed, confirmation code received
+- [ ] `bun audit` shows 0 critical / 0 runtime-dependency findings
+- [ ] Manual booking E2E passed, confirmation code + toast received
 - [ ] Honeypot returns fake `201`, zero rows written
 - [ ] Test rows removed from `db/custom.db`
-- [ ] No changes to `.env`, keys, or `upload/` staged for commit
+- [ ] No changes to `.env`, keys, `db/`, or `upload/` staged for commit
 - [ ] `git status` clean; pushed to `origin/main`
 
 ---
@@ -615,15 +641,17 @@ Optional inspection: `bunx prisma studio` (browse Booking/Question rows at `http
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
-| MEDIUM | `db/custom.db` is tracked while also being the runtime DB — real production leads could be committed/pushed accidentally | Customer PII in git history | Open — recommended: untrack the file and `.gitignore` it for production checkouts (dev seed can be regenerated via `db:push`) |
-| MEDIUM | No automated test suite (0 unit/integration/E2E tests) | Regressions in booking logic ship undetected | Open — first target: vitest on `src/lib/wcc/booking.ts` (pure functions, zero mocking needed) |
-| LOW | In-memory rate limit resets on restart and is not shared across instances | Temporary spam window after deploys | Accepted (ADR-005) at this scale |
-| LOW | `typescript.ignoreBuildErrors: true` and `reactStrictMode: false` in `next.config.ts` (template defaults) | Type errors surface only via manual `tsc --noEmit` | Open — flip on once the codebase passes cleanly and CI exists |
-| LOW | `package.json` carries unused template dependencies (`next-auth`, `next-intl`, `recharts`, `@mdxeditor/editor`, `@tanstack/*`, …) | Install weight, audit surface, reader confusion | Open — prune when a dependency audit is done |
-| LOW | Legacy `tailwind.config.ts` coexists with Tailwind 4 CSS-first tokens | Contributor confusion about the token source of truth | Accepted — CSS is authoritative (ADR-007); config is inert scaffold |
+| ~~MEDIUM~~ | ~~`db/custom.db` tracked while also being the runtime DB~~ | ~~Customer PII in git history~~ | **Resolved v1.1.0** — untracked + `/db/*.db` gitignored; `db:push` recreates it |
+| ~~MEDIUM~~ | ~~No automated test suite (0 tests)~~ | ~~Regressions ship undetected~~ | **Resolved v1.1.0** — Vitest, 49 unit tests (ADR-009); component/E2E layers still manual |
+| LOW | In-memory rate limit resets on restart and is not shared across instances | Temporary spam window after deploys | Accepted (ADR-005) at this scale — now shares one pruned `SlidingWindowRateLimiter` module |
+| ~~LOW~~ | ~~`ignoreBuildErrors: true` / `reactStrictMode: false` in `next.config.ts`~~ | ~~Type errors surface only via manual tsc~~ | **Resolved v1.1.0** — `ignoreBuildErrors: false`, `reactStrictMode: true`; tsconfig scoped to `src/` (+ noImplicitAny) so `tsc --noEmit` is clean |
+| ~~LOW~~ | ~~Unused template dependencies (`next-auth`, `recharts`, framer-motion, …)~~ | ~~Install weight, audit surface~~ | **Resolved v1.1.0** — 44 deps + 39 ui primitives pruned; `next` upgraded to 16.3.5; 0 critical vulns (ADR-008). Remaining `bun audit` findings are dev-tooling chains only |
+| ~~LOW~~ | ~~Legacy `tailwind.config.ts` coexists with CSS tokens~~ | ~~Contributor confusion~~ | **Resolved v1.1.0** — file deleted; CSS is the only token source |
 | LOW | `src/app/api/route.ts` is an unused hello-world handler | Dead code, misleading API surface | Open — safe to delete |
+| LOW | No slot capacity / double-booking check (same date+time bookable unlimited) | Potential scheduling collisions resolved manually by the owner | Open — needs an availability rule set; slots count is a static placeholder |
 | INFO | No admin/lead-management surface; `Booking.status` stays `"pending"` forever | Owner triages via Prisma Studio (by design for now) | Accepted — roadmap candidate |
 | INFO | Rate limiter trusts the `X-Forwarded-For` chain | Fine behind Caddy; spoofable if `:3000` were exposed directly | Accepted — keep the proxy in front |
+| INFO | Dev-tooling transitive advisories remain in `bun audit` (eslint/babel/prisma CLI chains) | None reach the standalone runtime bundle | Accepted — upstream semver pins; revisit when parents publish fixes |
 
 ---
 
@@ -631,29 +659,28 @@ Optional inspection: `bunx prisma studio` (browse Booking/Question rows at `http
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/components/wcc/booking-dialog.tsx` | 632 | 4-step booking flow — the largest interactive island; live quote, per-step validation, submit + confirmation states |
-| `src/data/wcc/content.ts` | 357 | **The single source of truth** — services, prices, areas, FAQs, testimonials, business facts, `BOOKABLE_SERVICES` derivation |
-| `src/app/globals.css` | 175 | Tailwind 4 `@theme inline` tokens, brand palette, `.grain`/`.shine`/`[data-reveal]` utilities, reduced-motion contract |
+| `src/components/wcc/booking-dialog.tsx` | 645 | 4-step booking flow — the largest interactive island; live quote, per-service summaries + Most Popular badge, add-on preselect, submit + confirmation states |
+| `src/data/wcc/content.ts` | 365 | **The single source of truth** — services, prices, areas, FAQs, testimonials, business facts, `BOOKABLE_SERVICES` derivation (with summaries) |
+| `src/app/globals.css` | 180 | Tailwind 4 `@theme inline` tokens (incl. `--accent-teal`), brand palette, `.grain`/`.shine`/`[data-reveal]` utilities, reduced-motion contract |
 | `src/components/wcc/question-dialog.tsx` | 169 | Inquiry dialog — zod-mirrored client checks, honeypot field |
 | `src/components/wcc/before-after.tsx` | 166 | Drag-compare slider — pointer capture, dirty-vision filter (Pattern 3) |
 | `src/components/wcc/site-header.tsx` | 154 | Sticky header, anchor nav, mobile Sheet, phone CTA |
-| `src/components/wcc/packages.tsx` | 148 | Essential/Premium cards with sedan/SUV price toggle |
-| `src/components/wcc/ceramic-tiers.tsx` | 148 | 1/3/5-year ceramic tier cards |
-| `src/app/api/bookings/route.ts` | 141 | Booking POST pipeline (Pattern 1) — zod, honeypot, rate limit, rules, persist |
-| `src/components/wcc/hero.tsx` | 115 | Hero with image background, stats band, dual CTAs |
-| `src/components/wcc/site-footer.tsx` | 114 | Footer — contact, hours, service areas, nav |
-| `src/app/layout.tsx` | 110 | Fonts, full metadata, OG/Twitter, JSON-LD `AutoWash` schema, Toaster |
-| `src/components/wcc/difference.tsx` | 112 | "Why we're different" section w/ before-after sliders |
-| `src/components/wcc/ceramic-upsell.tsx` | 106 | $200 ceramic add-on promo block |
-| `src/app/api/questions/route.ts` | 81 | Question POST pipeline (same pattern) |
-| `src/components/wcc/testimonials.tsx` | 79 | Embla carousel of reviews |
+| `src/components/wcc/packages.tsx` | 152 | Essential/Premium cards — image bands, dual sedan+SUV price rows, Smart Add-On preselect CTA |
+| `src/components/wcc/ceramic-tiers.tsx` | 135 | 1/3/5-year ceramic tier cards — dual pricing, popular tier photo + badge |
+| `src/components/wcc/hero.tsx` | 118 | Hero — teal eyebrow, rating badge, CTAs, stats band |
+| `src/app/layout.tsx` | 110 | Fonts, full metadata, OG/Twitter, JSON-LD `AutoWash` schema, sonner `<Toaster />` |
+| `src/app/api/bookings/route.ts` | 94 | Booking POST pipeline (Pattern 1) — shared zod schema, honeypot, rate limit, timezone-safe rules, persist |
+| `src/components/wcc/testimonials.tsx` | 90 | Embla carousel of reviews — gutter-positioned arrows (no text overlap) |
+| `src/lib/wcc/rate-limit.ts` | 75 | Shared `SlidingWindowRateLimiter` (pruning, per-route instances) + `clientIpFrom` |
+| `src/lib/wcc/dates.ts` | 57 | Timezone-safe `isSunday` / `isWithinBookingWindow` / `todayIsoInTz` (ADR-009) |
+| `src/lib/wcc/schemas.ts` | 51 | Extracted zod schemas — single source of truth for both routes |
+| `src/components/wcc/call-fab.tsx` | 36 | Mobile-only floating call button (appears after hero) |
 | `src/lib/wcc/booking.ts` | 69 | `findService`, `quoteFor`, `buildDayOptions`, `usd` — pure domain logic |
-| `src/lib/wcc/booking-store.ts` | 23 | Zustand dialog store (ADR-004) |
+| `src/lib/wcc/booking-store.ts` | 38 | Zustand dialog store (ADR-004) — `openBooking(serviceKey?, { addOnCeramic? })` |
+| `src/lib/wcc/__tests__/` | 5 files | 49 Vitest unit tests (ADR-009) |
 | `prisma/schema.prisma` | 45 | Booking + Question models, indexes |
-| `src/lib/db.ts` | 12 | Prisma singleton |
-| `src/app/page.tsx` | 35 | The single page — section composition |
-
----
+| `src/lib/db.ts` | 15 | Prisma singleton (query logging dev-only) |
+| `src/app/page.tsx` | 37 | The single page — section composition + CallFab |
 
 ## 13. Glossary
 

@@ -37,6 +37,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-accent-teal: var(--accent-teal);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -57,6 +58,10 @@
   --popover-foreground: #f2f0ea;
   --primary: #f2a61c;
   --primary-foreground: #17120a;
+  /* Secondary accent for keyword highlights (two-tone system like the
+     source site: amber for CTAs, teal for emphasis words).
+     #5eead4 on #0a0b0d ≈ 10.9:1 — WCAG AAA. */
+  --accent-teal: #5eead4;
   --secondary: #1a1d21;
   --secondary-foreground: #e8e6df;
   --muted: #17191d;

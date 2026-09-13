@@ -327,6 +327,9 @@ export interface BookableService {
   durationHours: string;
   group: "detail" | "ceramic" | "interior";
   allowCeramicAddOn: boolean;
+  /** One-line "what you get" shown in the booking dialog service list. */
+  summary: string;
+  popular?: boolean;
 }
 
 export const BOOKABLE_SERVICES: BookableService[] = [
@@ -337,6 +340,8 @@ export const BOOKABLE_SERVICES: BookableService[] = [
     durationHours: p.durationHours,
     group: "detail" as const,
     allowCeramicAddOn: true,
+    summary: p.features.slice(0, 3).join(" · "),
+    popular: p.popular,
   })),
   ...CERAMIC_TIERS.map((t) => ({
     key: t.key,
@@ -345,6 +350,8 @@ export const BOOKABLE_SERVICES: BookableService[] = [
     durationHours: "Full day",
     group: "ceramic" as const,
     allowCeramicAddOn: false,
+    summary: t.features.slice(1, 4).join(" · "),
+    popular: t.popular,
   })),
   {
     key: INTERIOR_ONLY.key,
@@ -353,5 +360,6 @@ export const BOOKABLE_SERVICES: BookableService[] = [
     durationHours: INTERIOR_ONLY.durationHours,
     group: "interior" as const,
     allowCeramicAddOn: true,
+    summary: INTERIOR_ONLY.features.slice(0, 3).join(" · "),
   },
 ];

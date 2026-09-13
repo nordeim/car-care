@@ -1,55 +1,9 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { db } from "@/lib/db";
-import { BOOKABLE_SERVICES, TIME_SLOTS } from "@/data/wcc/content";
 import { findService, quoteFor } from "@/lib/wcc/booking";
-
-// Simple in-memory sliding-window rate limit (per process; SQLite-backed
-// persistence makes the booking itself durable).
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_PER_WINDOW = 5;
-const hits = new Map<string, number[]>();
-
-function rateLimited(key: string): boolean {
-  const now = Date.now();
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < WINDOW_MS);
-  if (recent.length >= MAX_PER_WINDOW) {
-    hits.set(key, recent);
-    return true;
-  }
-  recent.push(now);
-  hits.set(key, recent);
-  return false;
-}
-
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date")
-  .refine((v) => {
-    const d = new Date(`${v}T00:00:00`);
-    if (Number.isNaN(d.getTime())) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + 60);
-    return d >= today && d <= maxDate;
-  }, "Date must be within the next 60 days");
-
-const bookingSchema = z.object({
-  serviceKey: z.string().refine((k) => BOOKABLE_SERVICES.some((s) => s.key === k), "Unknown service"),
-  vehicleType: z.enum(["sedan", "suv"]),
-  serviceMode: z.enum(["mobile", "shop", "pickup"]),
-  date: isoDate,
-  time: z.string().refine((t) => (TIME_SLOTS as readonly string[]).includes(t), "Unknown time slot"),
-  name: z.string().trim().min(2, "Name is too short").max(80),
-  phone: z.string().trim().regex(/^\+?[\d\s().-]{7,20}$/, "Enter a valid phone number"),
-  email: z.string().trim().email("Enter a valid email"),
-  address: z.string().trim().max(160).optional().or(z.literal("")),
-  city: z.string().trim().max(80).optional().or(z.literal("")),
-  notes: z.string().trim().max(1000).optional().or(z.literal("")),
-  addOnCeramic: z.boolean().default(false),
-  company: z.string().max(200).optional(), // honeypot — non-empty means bot
-});
+import { bookingSchema } from "@/lib/wcc/schemas";
+import { isSunday } from "@/lib/wcc/dates";
+import { bookingRateLimiter, clientIpFrom } from "@/lib/wcc/rate-limit";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -76,8 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, confirmation: "WCC-000000" }, { status: 201 });
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
-  if (rateLimited(ip)) {
+  if (bookingRateLimiter.check(clientIpFrom(request))) {
     return NextResponse.json(
       { error: "Too many booking attempts. Please call us at (508) 290-7476 to schedule." },
       { status: 429 },
@@ -89,8 +42,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown service" }, { status: 422 });
   }
 
-  // Sundays are closed.
-  if (new Date(`${data.date}T00:00:00`).getDay() === 0) {
+  // Sundays are closed (timezone-safe: weekday derived from the ISO date itself).
+  if (isSunday(data.date)) {
     return NextResponse.json(
       { error: "We're closed on Sundays — please pick another day." },
       { status: 422 },
