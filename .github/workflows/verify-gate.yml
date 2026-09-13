@@ -1,0 +1,127 @@
+# verify-gate.yml — CI for the documented verification gate.
+#
+# AGENTS.md defines the gate run before every commit:
+#   npm test && bun run e2e && bun run lint && bunx tsc --noEmit && bun run build
+# followed by the repo-invariant script (scripts/skill-verify.sh, 11 checks).
+# This workflow automates that exact gate so a green Actions run carries the
+# same guarantee as a green local gate. It runs on EVERY push (any ref —
+# deliberately no branch filter) and via manual dispatch.
+#
+# No secrets required: SQLite + .env.example keep the repo self-contained.
+# Guarded by scripts/skill-verify.sh check 11 — edit the workflow and the
+# documented gate together, never just one.
+name: verify-gate
+
+on:
+  push: # every push, any ref — keep this filterless
+  workflow_dispatch: # allow manual re-runs
+
+# A newer push to the same ref supersedes its older run.
+concurrency:
+  group: verify-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: documented gate (AGENTS.md)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pinned to the bun version that generated bun.lock — keeps
+      # `bun pm ls` output format (skill-verify check 1) and install
+      # behavior identical to the documented local gate.
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # skill-verify.sh greps with ripgrep; most runner images ship it —
+      # this makes it certain instead of hopeful.
+      - name: Ensure ripgrep
+        run: command -v rg || (sudo apt-get update -qq && sudo apt-get install -y ripgrep)
+
+      - name: Cache bun installs
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Provisioning, in order:
+      #  - .env BEFORE build: Next copies it into .next/standalone/ so the
+      #    e2e server resolves DATABASE_URL exactly like the local gate.
+      #  - db:generate: no postinstall exists — the Prisma client must be
+      #    generated before tsc/build/tests.
+      #  - db:push: db/custom.db is gitignored (PII rule), so the runner
+      #    starts with no DB — this creates the schema the e2e funnel needs.
+      #    scripts/db.ts pins the resolver-anchored absolute path.
+      - name: Provision env + SQLite schema
+        run: |
+          cp .env.example .env
+          bun run db:generate
+          bun run db:push
+
+      # Documented claim (AGENTS.md Tests): unit suite stays green under
+      # UTC / America/New_York / Asia/Singapore. CI enforces it on every
+      # push instead of only when a developer remembers to rerun TZs.
+      - name: Unit tests (UTC / America/New_York / Asia/Singapore)
+        run: |
+          for tz in UTC America/New_York Asia/Singapore; do
+            echo "::group::npm test (TZ=$tz)"
+            TZ=$tz npm test
+            echo "::endgroup::"
+          done
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Build (standalone + asset copy)
+        run: bun run build
+
+      - name: Install Playwright chromium
+        run: bunx playwright install --with-deps chromium
+
+      # Drives the standalone production build on :3100 (webServer in
+      # playwright.config.ts) — never next dev, same as the local gate.
+      - name: E2E on the standalone build
+        run: bun run e2e
+
+      - name: skill-verify (repo invariants)
+        run: bash scripts/skill-verify.sh
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -11,6 +11,14 @@
 #    tracked (commit 34a172d regressed this once; this check exists so a
 #    future `git add .`/`git add -f` fails the gate instead of shipping PII).
 #    skills/ is excluded (reference material, not part of the build).
+#
+# Cycle 5 (2026-09-14) additions:
+#  - NEW check 11: CI gate coverage — .github/workflows/verify-gate.yml must
+#    exist, must trigger on EVERY push (no branch filter), and must run every
+#    documented gate command (install/env/db provisioning, unit tests under
+#    all three timezones, tsc, lint, build, e2e, skill-verify). Keeps the
+#    Actions workflow from silently drifting out of sync with AGENTS.md.
+#  - Check 4 now also existence-checks `.github/…` paths referenced in SKILL.md.
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -39,7 +47,7 @@ echo "wcc=$WCC (claim 16), ui=$UI (claim 9)"
 [ "$WCC" = "16" ] && [ "$UI" = "9" ] && echo "OK  components" || { echo "FAIL components"; ERRORS=$((ERRORS+1)); }
 
 echo "=== 4. Referenced file paths exist (all @/ + src/ + root paths mentioned) ==="
-for f in $(rg -o '`(src|prisma|public|docs|scripts)/[A-Za-z0-9_./-]+`' $S -r '$1' | tr -d '`' | sort -u); do
+for f in $(rg -o '`(src|prisma|public|docs|scripts|\.github)/[A-Za-z0-9_./-]+`' $S -r '$1' | tr -d '`' | sort -u); do
   if [ -e "$f" ]; then echo "OK  $f"; else echo "FAIL missing: $f"; ERRORS=$((ERRORS+1)); fi
 done
 
@@ -87,6 +95,32 @@ if [ -z "$CONTENT_HITS" ]; then
 else
   echo "FAIL hardcoded business facts in components (use content.ts exports):"
   echo "$CONTENT_HITS"
+  ERRORS=$((ERRORS+1))
+fi
+
+echo "=== 11. CI gate workflow: documented gate runs on every push ==="
+# AGENTS.md documents the verification gate; .github/workflows/verify-gate.yml
+# automates it on GitHub Actions. This check fails if the workflow is deleted,
+# narrowed to specific refs, or stops running any documented gate command —
+# the same RED->GREEN guard pattern as checks 9 and 10.
+WF=.github/workflows/verify-gate.yml
+if [ -f "$WF" ]; then
+  if rg -q "branches:" "$WF"; then
+    echo "FAIL $WF has a branch filter — the documented gate must run on EVERY push"
+    ERRORS=$((ERRORS+1))
+  fi
+  MISSING=0
+  for needle in "push:" "bun install --frozen-lockfile" "cp .env.example .env" "db:generate" "db:push" "npm test" "UTC" "America/New_York" "Asia/Singapore" "tsc --noEmit" "bun run lint" "bun run build" "bun run e2e" "playwright install" "skill-verify.sh"; do
+    if rg -q -F -- "$needle" "$WF"; then
+      :
+    else
+      echo "FAIL gate step missing from $WF: $needle"
+      MISSING=1; ERRORS=$((ERRORS+1))
+    fi
+  done
+  [ $MISSING -eq 0 ] && echo "OK  workflow covers the full documented gate on every push"
+else
+  echo "FAIL $WF missing — CI must run the documented gate (see AGENTS.md)"
   ERRORS=$((ERRORS+1))
 fi
 
