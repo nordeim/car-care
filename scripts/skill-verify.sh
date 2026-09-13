@@ -6,7 +6,7 @@
 #  - Repo-relative paths (was hardcoded /home/z/my-project — broke when the
 #    repo was cloned one level deeper; the script silently ran against a
 #    non-repo directory and every check failed or no-op'd).
-#  - Test-count expectation updated 49 → 66 (vitest) to match the suite.
+#  - Test-count expectation updated 49 → 66 → 69 (vitest) to match the suite.
 #  - NEW check 9: git invariants — .env and SQLite .db files must NEVER be
 #    tracked (commit 34a172d regressed this once; this check exists so a
 #    future `git add .`/`git add -f` fails the gate instead of shipping PII).
@@ -37,8 +37,8 @@ done
 
 echo "=== 2. Test count claim ==="
 ACTUAL=$(TZ=UTC npm test 2>&1 | rg -o "Tests\s+[0-9]+ passed \([0-9]+\)" | rg -o "[0-9]+ passed \([0-9]+\)" | head -1)
-echo "actual: ${ACTUAL:-none} / claimed: 66/66 (SKILL project_state)"
-[ "${ACTUAL%% *}" = "66" ] && echo "OK  tests" || { echo "FAIL tests"; ERRORS=$((ERRORS+1)); }
+echo "actual: ${ACTUAL:-none} / claimed: 69/69 (SKILL project_state)"
+[ "${ACTUAL%% *}" = "69" ] && echo "OK  tests" || { echo "FAIL tests"; ERRORS=$((ERRORS+1)); }
 
 echo "=== 3. Component count claims ==="
 WCC=$(find src/components/wcc -name '*.tsx' | wc -l)
