@@ -7,12 +7,12 @@ description: >
   so any coding agent can extend, debug, onboard onto, or replicate the site
   without re-learning its hard-won lessons: timezone-safe date rules, honeypot
   + sliding-window bot defense, dark-first two-tone design system, 4-step
-  booking dialog, and the test pyramid that locks it all down: 66 Vitest
-  unit tests (timezone-verified) plus a 31-test Playwright e2e suite that
+  booking dialog, and the test pyramid that locks it all down: 69 Vitest
+  unit tests (timezone-verified) plus a 36-test Playwright e2e suite that
   drives the standalone production build.
-version: 1.4.3
+version: 1.5.0
 last_updated: 2026-09-14
-project_state: 66/66 unit tests green (UTC + America/New_York + Asia/Singapore) · 31/31 e2e green (standalone build) · live E2E + API contracts verified on prod · security headers (CSP/HSTS/XFO/nosniff) + poweredByHeader off · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · shared db-url.ts resolver + scripts/db.ts CLI wrapper · git invariants + content-as-data + CI coverage guarded by scripts/skill-verify.sh (11 checks, repo-relative) · CI runs the documented gate on every push (.github/workflows/verify-gate.yml) · cycle-4 audit PASS (docs/code-review-audit-2026-09-cycle4.md) · verified 2026-09-14
+project_state: 69/69 unit tests green (UTC + America/New_York + Asia/Singapore) · 36/36 e2e green (standalone build) · live E2E + API contracts verified on prod · security headers (CSP/HSTS/XFO/nosniff) + poweredByHeader off · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · shared db-url.ts resolver + scripts/db.ts CLI wrapper · git invariants + content-as-data + CI coverage guarded by scripts/skill-verify.sh (11 checks, repo-relative) · CI runs the documented gate on every push (.github/workflows/verify-gate.yml) · cycle-5 audit PASS (docs/code-review-audit-2026-09-cycle5.md) — SEO parity (FAQPage JSON-LD from FAQS, canonical, AutoWash.url, theme-color, favicon.ico + apple-icon.png) + hardening (json-ld.ts escape helper, Caddyfile sandbox labeling, 429 Retry-After) · verified 2026-09-14
 tags:
   - nextjs16
   - react19
@@ -121,7 +121,7 @@ All versions are **locked versions from `bun.lock`** (verified 2026-09-13 via `b
 | Validation | `zod` | 4.6.4 | Shared schemas in `src/lib/wcc/schemas.ts` — server-authoritative, client-reusable. |
 | ORM | `prisma` + `@prisma/client` | 6.19.3 / 6.19.3 | `db:push` is the primary sync workflow (ADR-002). One init migration (`prisma/migrations/20260913142416_init/`) exists from the 2026-09-13 live-server bootstrap (`bun run db:migrate`, see `docs/start_server_log.txt`); it matches the schema — `db:push` remains the day-to-day workflow. |
 | Database | SQLite | — | Single file `db/custom.db` (**gitignored — customer PII**). |
-| Tests | `vitest` + `@playwright/test` | 5.0.0 / 1.63.0 | Vitest: node env, `@/` alias, 66 unit tests / 8 files. Playwright: chromium, serial, 31 e2e tests / 5 spec files against the standalone build on :3100 (ADR-010). |
+| Tests | `vitest` + `@playwright/test` | 5.0.0 / 1.63.0 | Vitest: node env, `@/` alias, 69 unit tests / 9 files. Playwright: chromium, serial, 36 e2e tests / 5 spec files against the standalone build on :3100 (ADR-010). |
 | Icons | `lucide-react` | 0.525.0 | Icon usage is `aria-hidden` + adjacent text labels. |
 | Image optimization | `sharp` | 0.35.4 | Used by `scripts/optimize-images.mjs` (WebP pipeline). |
 | Utility | `class-variance-authority` / `clsx` / `tailwind-merge` | 0.7.1 / 2.1.1 / 3.7.0 | `cn()` in `src/lib/utils.ts`. |
@@ -159,8 +159,8 @@ bun run dev                      # http://localhost:3000 (metadataBase still liv
 1. `http://localhost:3000` renders the hero + pricing (page 200).
 2. Any **Book Now** CTA → walk all 4 dialog steps → submit → `WCC-XXXXXX` confirmation toast appears.
 3. `bunx prisma studio` → the row exists in the `Booking` table. (Delete test rows when done — PII hygiene.)
-4. `npm test` → 66/66 pass. `bun run lint` → clean.
-5. `bun run build` once, then `bun run e2e` → 31/31 pass on the standalone build (funnel + DB truth, API contracts incl. 413, SEO, axe a11y, security headers).
+4. `npm test` → 69/69 pass. `bun run lint` → clean.
+5. `bun run build` once, then `bun run e2e` → 36/36 pass on the standalone build (funnel + DB truth, API contracts incl. 413, SEO/JSON-LD incl. FAQPage + canonical + icons, axe a11y, security headers).
 
 ### 3.3 Configuration files
 
@@ -253,8 +253,10 @@ Both loaded via `next/font/google` in `src/app/layout.tsx` with CSS variables. B
 ### 5.1 The three-layer model
 
 ```
-src/app/            ← route shell: layout.tsx (fonts, metadata, JSON-LD, Toaster),
-page.tsx (composition)  + api/{bookings,questions}/route.ts (server)
+src/app/            ← route shell: layout.tsx (fonts, metadata + canonical + theme-color,
+                      TWO JSON-LD blocks — AutoWash + FAQPage — and Toaster),
+                      apple-icon.png + icon.svg; page.tsx (composition)
+                      + api/{bookings,questions}/route.ts (server)
 src/components/wcc/ ← 16 site components (ALL "use client") — feature layer
 src/components/ui/  ← 9 vendored shadcn primitives (6 of them "use client")
 src/data/wcc/       ← content.ts — typed content, the single source of truth (ADR-003)
@@ -526,11 +528,11 @@ The gate every commit on `main` has passed. Run in order; any failure blocks the
 ### 11.1 Quality gates (commands)
 
 ```bash
-npm test                      # 66/66 — also run under TZ=UTC and TZ=Asia/Singapore when dates changed
+npm test                      # 69/69 — also run under TZ=UTC and TZ=Asia/Singapore when dates changed
 bun run lint                  # eslint . — clean
 bunx tsc --noEmit             # 0 errors (checks more than the build does; covers src/ AND e2e/)
 bun run build                 # standalone build + asset copy; type errors fail it
-bun run e2e                   # 31/31 on the standalone build (funnel + DB truth, API contracts, SEO, axe a11y)
+bun run e2e                   # 36/36 on the standalone build (funnel + DB truth, API contracts, SEO incl. FAQPage/canonical/icons, axe a11y)
 ```
 
 CI runs this exact gate on **every push** — `.github/workflows/verify-gate.yml` (GitHub Actions, ubuntu-latest, bun pinned to the lockfile generator version; provisions `.env` from `.env.example` and the SQLite schema via `db:generate` + `db:push` since the runner starts with no DB; runs the unit suite under all three timezones; uploads the Playwright report as an artifact on failure). No secrets are involved. `scripts/skill-verify.sh` check 11 fails the local gate if the workflow is deleted, filtered to specific refs, or drops any documented gate command — keep the workflow and this checklist in sync.
@@ -993,7 +995,7 @@ Honeypot on either route: non-empty `company` → fake `201`, no row written. Su
 **2026-09-13 — audit cycle 2: e2e suite + a11y + perf (v1.2.0)**
 
 - Added `.env.example` (path semantics verified for CLI + runtime); `.gitignore` un-ignores it.
-- Playwright e2e suite adopted from `nordeim/home-financing` (ADR-010): 31 tests — smoke, SEO/JSON-LD, booking funnel with SQLite server-truth + cleanup, API contracts (400/413/422/429/honeypot/201, unique XFF per test), axe gates (critical + serious). Suite caught the missing `robots.txt` `Sitemap:` directive (red → green).
+- Playwright e2e suite adopted from `nordeim/home-financing` (ADR-010): 31 tests at adoption (now 36) — smoke, SEO/JSON-LD, booking funnel with SQLite server-truth + cleanup, API contracts (400/413/422/429/honeypot/201, unique XFF per test), axe gates (critical + serious). Suite caught the missing `robots.txt` `Sitemap:` directive (red → green).
 - Visual parity re-audit vs the source: two VLM passes + DOM verification of every claim — 3 of 6 VLM-flagged gaps were false positives; parity holds; no code changes required.
 - Lighthouse on the standalone build: a11y 0.97 → **1.0** (aria-prohibited-attr star spans → `role="img"`; logo Label-in-Name fixed by composing the accessible name from content + `sr-only`; aria-label dropped from the CTA rating `<p>`); performance 0.71 → **0.80** (hero made responsive: 640w/1024w srcset, phones 44 KB vs 161 KB; `fetchPriority="high"` was already present — caught by the plan-validation step).
 - Dead `/api` hello-world route deleted; `e2e/` + `playwright.config.ts` added to tsconfig include.
@@ -1035,11 +1037,15 @@ What this catches that `tsc`/`vitest`/`build` cannot: toast renderers that were 
 
 2026-09-14 (v1.4.3, CI gate): GitHub Actions workflow `.github/workflows/verify-gate.yml` added — the documented verification gate now runs on **every push** (any ref, no branch filter) plus manual dispatch: frozen `bun install` → `.env` from `.env.example` + `db:generate`/`db:push` provisioning (runner has no DB — gitignored by design) → unit tests ×3 TZ (UTC / America/New_York / Asia/Singapore) → `tsc --noEmit` → lint → standalone build → e2e (chromium, standalone server on :3100) → `scripts/skill-verify.sh`; no secrets; Playwright report artifact on failure; bun pinned to 1.3.14 (the lockfile generator — keeps `bun pm ls` output format stable for check 1). New **check 11** (RED→GREEN TDD: missing-file failure → full-coverage pass) pins the workflow's existence, filterless push trigger, and coverage of every documented gate command; check 4 now existence-verifies `.github/…` paths referenced in this file. AGENTS/README (badge + status row + contributing)/PRD (Ops row "no Docker/CI yet" corrected; 11 checks) aligned.
 
+2026-09-14 (v1.5.0, cycle 5 — live E2E re-verification + SEO parity vs source): fresh live-site E2E on `https://car-care.jesspete.shop` (booking funnel `WCC-T2E850`, all API contracts, 429 confirmed over a pinned connection — the initial miss was sandbox egress-IP rotation, not a site bug; axe 0 violations; CWV TTFB 98ms / LCP 376ms / CLS 0; pricing + 13 service areas + phone/address/email EXACT parity vs `wecarecarcare.com`). Five SEO parity gaps closed (TDD: 5 RED specs → GREEN): **FAQPage JSON-LD** generated from `FAQS` (source ships one, staler — 8 old-named Qs vs our 9 current), **canonical** via `alternates.canonical` (source declares one), **`AutoWash.url`**, **`viewport.themeColor`** `#0a0b0d`, and **`public/favicon.ico` + `src/app/apple-icon.png`** generated by the new `scripts/gen-icons.mjs` (sharp → 180px PNG + 32px ICO-with-PNG-entry; rerun after touching `src/app/icon.svg`). e2e 31 → **36** (`e2e/seo.spec.ts` grew from 4 to 9 specs); deliberately NOT replicated: `hasOfferCatalog` (source's is stale — 5 old-named offers), `sameAs` (source's is an empty array). AGENTS/CLAUDE/README/PRD aligned (counts, F5.1–F5.3, cycle-5 status row).
+
+2026-09-14 (v1.5.0 continued, cycle 5 audit + hardening — `docs/code-review-audit-2026-09-cycle5.md`): tiered review round 3, verdict PASS. 2 LOW findings fixed same-cycle (TDD): **A1** — JSON-LD blocks serialized through the new `src/lib/wcc/json-ld.ts` `jsonLdHtml()` helper (`<` → `\u003c` after stringify; `<` can only occur inside JSON string values so the escape is always lossless) — a `</script>` sequence in future authored content can no longer break out of the structured-data script blocks; unit 66 → **69** (`__tests__/json-ld.test.ts`, 3 tests — skill-verify check 2 updated in lockstep). **A2** — `Caddyfile` labeled sandbox-only/do-not-deploy in a header comment (it contains the `XTransformPort` open-port preview handler and targets :3000; the live bootstrap ran :3005 — `docs/start_server_log.txt`); README troubleshooting row added. **A3** — 429 responses now carry `Retry-After: 600` (RFC 6585 §4; the existing 429 e2e spec asserts it). Environment lessons recorded: tool-result display strips literal `[m` sequences (a file that "reads corrupted" while git/tsc/build are green is a display artifact — verify with `od -c`/`git hash-object` before "fixing" it); sandbox egress IP rotates between two addresses (rate-limit tests from such an environment must pin a single connection).
+
 **Drift check** — run when this doc is >1 sprint stale:
 
 ```bash
 bun pm ls | rg "next@|react@|zod@|vitest@"        # vs §2
-TZ=UTC npm test 2>&1 | rg "Tests"                  # vs "66 tests" claims
+TZ=UTC npm test 2>&1 | rg "Tests"                  # vs "69 tests" claims
 find src/components/wcc -name '*.tsx' | wc -l       # vs §5.3 (16)
 rg -c "amber-|gray-|slate-|blue-" src/ || echo OK   # §19 forbidden-color scan
 rg -n "TODO|FIXME" car-care_SKILL.md | rg -v "must stay 0"   # must stay 0 (self-filtering)

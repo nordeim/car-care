@@ -27,8 +27,8 @@ A single-page site built to convert local search traffic into detail appointment
 | 🗄️ Lead persistence | Booking + Question models in SQLite via Prisma; reviewable in Prisma Studio |
 | ✨ Motion with respect | IntersectionObserver scroll reveals, CTA shine sweep — all disabled under `prefers-reduced-motion` |
 | 📱 Mobile call FAB | Floating call button appears after scrolling past the hero (mobile only) |
-| 🧪 Tests | Vitest (66 unit tests: pricing/date logic, validation schemas, rate limiter + IP extraction, DB-URL resolver contract, payload guard, dialog store) + Playwright (31 e2e tests: smoke, SEO, booking funnel with DB truth, API contracts incl. 413, axe a11y) against the standalone production build |
-| 🔍 Local SEO | Full metadata, OG/Twitter cards, JSON-LD `AutoWash` schema (address, geo, hours, service areas, rating), `sitemap.xml`, app icon |
+| 🧪 Tests | Vitest (69 unit tests: pricing/date logic, validation schemas, rate limiter + IP extraction, DB-URL resolver contract, payload guard, dialog store, JSON-LD serializer) + Playwright (36 e2e tests: smoke, SEO/JSON-LD incl. FAQPage + canonical, booking funnel with DB truth, API contracts incl. 413 + 429 Retry-After, axe a11y) against the standalone production build |
+| 🔍 Local SEO | Full metadata, OG/Twitter cards, canonical link, `theme-color`, **two JSON-LD blocks** (`AutoWash` with url + `FAQPage` generated from `FAQS`), `sitemap.xml`, app icon + `apple-icon.png` + legacy `favicon.ico` |
 
 ## Architecture
 
@@ -70,6 +70,7 @@ flowchart TB
  ┃ ┣ 📄 layout.tsx — fonts, metadataBase (env-driven), JSON-LD, Toaster
  ┃ ┣ 📄 sitemap.ts — env-driven sitemap (SITE_URL)
  ┃ ┣ 📄 robots.ts — dynamic robots (env-driven sitemap URL) + public/robots.txt static fallback
+ ┃ ┣ 📄 apple-icon.png — iOS bookmark icon (180×180; regenerated via `bun scripts/gen-icons.mjs`)
  ┃ ┣ 📄 page.tsx — the single page: section composition
  ┃ ┗ 📄 globals.css — Tailwind 4 tokens, brand utilities (.grain, .shine, [data-reveal])
  ┣ 📂 components
@@ -83,7 +84,7 @@ flowchart TB
     ┗ 📄 utils.ts — cn()
 📂 prisma — 📄 schema.prisma — Booking, Question models
 📂 db — runtime SQLite (gitignored; created by db:push)
-📂 public — logo.svg, robots.txt, 📂 images (8 WebP assets: 6 originals + hero-car 640w/1024w responsive variants)
+📂 public — logo.svg, robots.txt, favicon.ico (32×32 ICO w/ PNG entry), 📂 images (8 WebP assets: 6 originals + hero-car 640w/1024w responsive variants)
 📂 scripts — db.ts (Prisma CLI wrapper — pins resolved DB path) · image generation / optimization / visual-check helpers
 📂 docs — project prompt, skill docs, SSH git wrapper, audit + remediation plan
 ```
@@ -111,12 +112,12 @@ bun run dev            # http://localhost:3000 (metadataBase still live URL)
 1. Open `http://localhost:3000` — the We Care Car Care landing page renders with the hero image and pricing sections.
 2. Click any **Book Now** CTA, walk all 4 steps, submit — you get a `WCC-XXXXXX` confirmation.
 3. `bunx prisma studio` → your row is in the `Booking` table.
-4. `bun run lint` exits clean; `npm test` passes (66 tests); `bun run e2e` passes (31 tests — needs `bun run build` first).
+4. `bun run lint` exits clean; `npm test` passes (69 tests); `bun run e2e` passes (36 tests — needs `bun run build` first).
 
 ### Tests
 
 ```bash
-npm test            # vitest run — 66 unit tests
+npm test            # vitest run — 69 unit tests
 npm run test:watch  # watch mode
 
 # Playwright E2E — runs the standalone production build on :3100.
@@ -156,7 +157,7 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 |----------|--------|------|-------------|
 | `/api/bookings` | POST | none | Create a booking request. Zod-validated body: `serviceKey`, `vehicleType`, `serviceMode`, `date` (≤60 days out), `time`, `name`, `phone`, `email`, optional `address`/`city`/`notes`, `addOnCeramic`. Business rules: Sundays rejected, address required for mobile/pickup. Returns `201 {ok, confirmation, priceQuote}` |
 | `/api/questions` | POST | none | Create an inquiry: `name`, `email`, optional `phone`, `question` (10–2000 chars). Returns `201 {ok}` |
-| `/api/bookings`, `/api/questions` | POST | none | ⚠️ A non-empty `company` field is the honeypot — returns fake `201` and writes nothing. Rate-limited to 5 requests / 10 min per IP (`429` beyond that, with a call-us message) |
+| `/api/bookings`, `/api/questions` | POST | none | ⚠️ A non-empty `company` field is the honeypot — returns fake `201` and writes nothing. Rate-limited to 5 requests / 10 min per IP (`429` beyond that, with a call-us message and `Retry-After: 600`) |
 
 ## Design System
 
@@ -183,7 +184,8 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 | Remediation cycle 3 (validation + live E2E + audit hardening) | ✅ Done | Shared unit-tested DB-URL resolver (`db-url.ts`) + `scripts/db.ts` CLI wrapper (kills env-drift DB mismatch), doc truthfulness pass (dead `/api` refs, 13 service areas, package identity); tiered review + security audit → `docs/code-review-audit-2026-09.md`: security headers + CSP, `poweredByHeader:false`, 413 payload guard, `cf-connecting-ip`-aware rate limiting, sanitized API error logs, hydration-safe footer year — 66 unit + 31 e2e green |
 | Remediation cycle 4 (git invariants + docs truth + audit round 2) | ✅ Done | See `docs/code-review-audit-2026-09-cycle4.md` — `.env`/`db/custom.db` re-tracked by `34a172d` → untracked + regression guard (`skill-verify.sh` check 9); SKILL/PAD/PRD/AGENTS/CLAUDE drift corrected (stale test counts, TZ-unsafe PAD sample, migrations story, SSH path, 8 WebP assets); `bun.lock` identity fixed; content-as-data violations fixed in dialogs (`CERAMIC_ADDON`/`BUSINESS.phone` interpolation) + check-10 guard — 66 unit + 31 e2e green × 3 TZ |
 | PRD + validation report (standalone DB trap fix, live URL) | ✅ Done | See `PRD.md` + `docs/validation-report-PRD.md` — `file:../db/custom.db` cwd-aware resolver, live `https://car-care.jesspete.shop` env-driven SEO (`layout`/`sitemap`/`robots.ts`), lint `set-state-in-effect` off |
-| Automated test suite | ✅ Done | Vitest 66 unit (lib/schemas/store/db-url/client-ip/payload) + Playwright 31 e2e (smoke/SEO/funnel/API/a11y) |
+| Remediation cycle 5 (live E2E + SEO parity + audit round 3) | ✅ Done | Live-site E2E re-verified (booking funnel `WCC-XXXXXX`, all API contracts, 429 confirmed, axe 0 violations, CWV TTFB 98ms/LCP 376ms/CLS 0); SEO parity gaps vs source closed — FAQPage JSON-LD (from `FAQS`), canonical link, `AutoWash.url`, `theme-color`, `favicon.ico` + `apple-icon.png` (`scripts/gen-icons.mjs`); audit cycle 5 (`docs/code-review-audit-2026-09-cycle5.md`) PASS — JSON-LD `</script>` hardening (`json-ld.ts`), Caddyfile labeled sandbox-only/do-not-deploy, `Retry-After: 600` on 429s — 69 unit + 36 e2e green |
+| Automated test suite | ✅ Done | Vitest 69 unit (lib/schemas/store/db-url/client-ip/payload/json-ld) + Playwright 36 e2e (smoke/SEO/funnel/API/a11y) |
 | CI gate (GitHub Actions) | ✅ Done | `.github/workflows/verify-gate.yml` — the documented gate on **every push**: unit ×3 TZ, `tsc`, `lint`, standalone `build`, `e2e` (chromium), `skill-verify.sh` (11 checks); coverage pinned by check 11; no secrets |
 | Admin surface for leads | ❌ Not started | Owner reviews leads via Prisma Studio |
 
@@ -199,6 +201,7 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 | `db:push` creates the DB outside the repo (or ignores `.env`) | A `DATABASE_URL` exported by a parent shell/CI env (or a parent-directory `.env`, which bun auto-loads) silently overrides the repo value — all `db:*` scripts go through `scripts/db.ts`, which pins the runtime-resolved absolute path; run `bun run db:push` (not bare `prisma db push`) |
 | Live OG/sitemap shows wrong domain | Set `NEXT_PUBLIC_SITE_URL`/`SITE_URL` in `.env` (canonical `https://car-care.jesspete.shop`) — `layout.tsx`/`sitemap.ts`/`robots.ts` all read it |
 | Sunday date rejected | Intentional: the shop is closed Sundays (both UI and API enforce it) |
+| `Caddyfile` looks like an odd config (XTransformPort, :81) | Sandbox preview proxy only — **do not deploy publicly** (the transform-port handler proxies to arbitrary localhost ports). Live runs Cloudflare → host proxy → standalone server (:3005 at bootstrap) — see the header comment in `Caddyfile` |
 
 ## Contributing
 

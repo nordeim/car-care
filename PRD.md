@@ -2,7 +2,7 @@
 
 **Product:** Marketing + booking site for **We Care Car Care**, auto detailing & ceramic coating studio, Framingham MA (MetroWest Boston, since 2010).
 **Repo:** `github.com/nordeim/car-care` · **Stack:** Next.js 16.3.5 App Router (standalone) · React 19.3 · TypeScript 5.9 · Tailwind 4.3 · Prisma 6.19 + SQLite · Zustand · Zod · Vitest + Playwright
-**Status:** v1.5.1 — 66/66 unit × 3 TZ + 31/31 e2e green · live E2E + API contracts verified on prod · security headers (CSP/HSTS) + 413 payload guard · lighthouse a11y/bp/seo 1.0 · live https://car-care.jesspete.shop (env-driven SEO) · git invariants + content-as-data + CI coverage guarded by `scripts/skill-verify.sh` (11 checks) · CI: documented gate runs on every push (`.github/workflows/verify-gate.yml`) · cycle-4 audit: PASS, 0 open findings (`docs/code-review-audit-2026-09-cycle4.md`)
+**Status:** v1.6.1 — 69/69 unit × 3 TZ + 36/36 e2e green · live E2E + API contracts verified on prod · security headers (CSP/HSTS) + 413 payload guard · lighthouse a11y/bp/seo 1.0 · live https://car-care.jesspete.shop (env-driven SEO) · git invariants + content-as-data + CI coverage guarded by `scripts/skill-verify.sh` (11 checks) · CI: documented gate runs on every push (`.github/workflows/verify-gate.yml`) · cycle-5 audit: PASS (`docs/code-review-audit-2026-09-cycle5.md`) — SEO parity (FAQPage JSON-LD + canonical + AutoWash.url + theme-color + favicon/apple-icon) + hardening (JSON-LD escape helper, Caddyfile sandbox labeling, 429 Retry-After)
 **Source of truth:** Business facts in `src/data/wcc/content.ts`; this PRD derives from `docs/prompt-to-create.md` (clone `https://wecarecarcare.com/` from `nordeim/home-financing`) plus the contracts in `AGENTS.md` / `CLAUDE.md` / `README.md` / `car-care_SKILL.md`.
 **Live:** `https://car-care.jesspete.shop` (canonical, env-driven via `NEXT_PUBLIC_SITE_URL`/`SITE_URL`; original ref `https://wecarecarcare.com`)
 **Last updated:** 2026-09-14
@@ -88,13 +88,13 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 - **F4.4** Address required for `mobile`/`pickup` — `422`.
 - **F4.5** Price quote recomputed server-side via `quoteFor`; ceramic add-on $200 flat only if tier allows; client quote display-only.
 - **F4.6** Honeypot: field `company` — if non-empty → fake `201 {ok:true, confirmation:"WCC-000000"}` and **no row written** (bots learn nothing).
-- **F4.7** Rate limit: 5 req / 10 min per IP per endpoint, sliding window, `SlidingWindowRateLimiter` with `prune()`, shared instance — `429` with call-us message; trusts `x-forwarded-for` first hop behind Caddy.
+- **F4.7** Rate limit: 5 req / 10 min per IP per endpoint, sliding window, `SlidingWindowRateLimiter` with `prune()`, shared instance — `429` with call-us message + `Retry-After: 600` (RFC 6585); prefers `cf-connecting-ip`, then first `x-forwarded-for` hop behind Caddy.
 
 ### F5 — SEO / A11y / Perf
 
-- **F5.1** Metadata: title/description, `metadataBase` env-driven (`NEXT_PUBLIC_SITE_URL`/`SITE_URL`, fallback `https://car-care.jesspete.shop`; original ref `https://wecarecarcare.com`), OG/Twitter cards referencing `/images/hero-car.webp` (now `https://car-care.jesspete.shop/...` in build).
-- **F5.2** JSON-LD `AutoWash` in `layout.tsx` (name, phone, email, address Framingham, geo, hours, `areaServed` 13 towns, `aggregateRating` 5.0/37) — keep in sync with `content.ts`.
-- **F5.3** `src/app/robots.ts` (dynamic, env-driven `sitemap: ${siteUrl}/sitemap.xml`) + `src/app/sitemap.ts` (env-driven) + `icon.svg`; `public/robots.txt` is the static fallback aligned to live `https://car-care.jesspete.shop/sitemap.xml`.
+- **F5.1** Metadata: title/description, `metadataBase` env-driven (`NEXT_PUBLIC_SITE_URL`/`SITE_URL`, fallback `https://car-care.jesspete.shop`; original ref `https://wecarecarcare.com`), self-referencing **canonical** (`alternates.canonical`), OG/Twitter cards referencing `/images/hero-car.webp`, `viewport.themeColor` #0a0b0d.
+- **F5.2** JSON-LD in `layout.tsx`: **two blocks** — `AutoWash` (name, url, phone, email, address Framingham, geo, hours, `areaServed` 13 towns, `aggregateRating` 5.0/37) + **`FAQPage`** generated from `FAQS` (9 Q&A) — keep in sync with `content.ts`.
+- **F5.3** `src/app/robots.ts` (dynamic, env-driven `sitemap: ${siteUrl}/sitemap.xml`) + `src/app/sitemap.ts` (env-driven) + `icon.svg` + `apple-icon.png` (iOS) + `public/favicon.ico` (legacy); `public/robots.txt` is the static fallback aligned to live `https://car-care.jesspete.shop/sitemap.xml`. Regenerate icon assets after touching `icon.svg` (`bun scripts/gen-icons.mjs`).
 - **F5.4** A11y: WCAG AA (AAA for main text/accents), axe `critical+serious=0`, `role=slider`/`accordion`/`dialog`, `Label htmlFor`, `role=alert` for errors, icons `aria-hidden` + adjacent text, focus rings amber.
 - **F5.5** Perf: hero `fetchPriority high` + responsive srcset (640w 44KB vs 1024w), lazy below-fold, no Framer Motion, standalone output, `sharp` WebP pipeline.
 
@@ -105,10 +105,10 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 | Area | Requirement |
 |---|---|
 | **Perf budget** | Lighthouse a11y/bp/seo 1.0, perf ≥0.80; single RSC page, minimal client JS. |
-| **Security** | Zod at boundary, 32KB payload guard (413) before parse, Prisma parameterization, `dangerouslySetInnerHTML` only for static JSON-LD, app-level security headers (CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy; `poweredByHeader` off), rate-limit keys prefer `cf-connecting-ip`, no secrets in client, `.env` + `db/*.db` gitignored, `bun audit --prod` 0 findings. |
+| **Security** | Zod at boundary, 32KB payload guard (413) before parse, Prisma parameterization, `dangerouslySetInnerHTML` only for static JSON-LD (serialized through the `json-ld.ts` `<`-escape helper), app-level security headers (CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy; `poweredByHeader` off), rate-limit keys prefer `cf-connecting-ip`, no secrets in client, `.env` + `db/*.db` gitignored, `bun audit --prod` 0 findings. |
 | **Reliability** | Timezone-safe date logic verified `TZ=UTC` + `America/New_York` + `Asia/Singapore`; server re-validates all client state; in-memory rate limit ephemeral by design (ADR-005); DB path resolution shared + contract-tested (`db-url.ts` + `scripts/db.ts` CLI wrapper) so CLI/dev/standalone/E2E land on one SQLite file even under inherited env drift. |
 | **Ops** | `bun` canonical; `bun run dev` (:3000 `dev.log`) / `build` (copies `static`+`public` into `.next/standalone/`; standalone `server.js` chdirs to `standalone` — DB path re-anchored by shared `db-url.ts`) / `start` (bun `server.js` `server.log`); env vars `DATABASE_URL` + `NEXT_PUBLIC_SITE_URL`/`SITE_URL` (live `https://car-care.jesspete.shop`); no Docker; CI: GitHub Actions runs the documented gate on **every push** (`.github/workflows/verify-gate.yml` — unit ×3 TZ, tsc, lint, build, e2e, skill-verify; no secrets; coverage pinned by skill-verify check 11). |
-| **Testing** | Vitest 66 unit (pricing/slots, dates TZ, schemas, rate-limit + IP extraction, db-url, payload guard, store) + Playwright 31 e2e (smoke, SEO/JSON-LD, funnel with SQLite truth + cleanup, API contracts incl. 413, axe) on standalone :3100. Gate: `npm test && bun run e2e && bun run lint && bunx tsc --noEmit && bun run build` — the same gate runs in CI on every push (`.github/workflows/verify-gate.yml`). |
+| **Testing** | Vitest 69 unit (pricing/slots, dates TZ, schemas, rate-limit + IP extraction, db-url, payload guard, store, json-ld serializer) + Playwright 36 e2e (smoke, SEO/JSON-LD incl. FAQPage + canonical + icon assets, funnel with SQLite truth + cleanup, API contracts incl. 413 + 429 Retry-After, axe) on standalone :3100. Gate: `npm test && bun run e2e && bun run lint && bunx tsc --noEmit && bun run build` — the same gate runs in CI on every push (`.github/workflows/verify-gate.yml`). |
 
 ---
 
@@ -164,7 +164,7 @@ Hard fails: (1) hardcoding price/copy in JSX, (2) trusting client price/date, (3
 
 ## 10. Acceptance Criteria (Definition of Done for this PRD)
 
-- [ ] `npm test` 66/66 × 3 TZ · `bun run e2e` 31/31 on standalone :3100 · `bun run lint` clean · `bunx tsc --noEmit` clean (src+e2e) · `bun run build` green with asset copy · `bun audit --prod` 0
+- [ ] `npm test` 69/69 × 3 TZ · `bun run e2e` 36/36 on standalone :3100 · `bun run lint` clean · `bunx tsc --noEmit` clean (src+e2e) · `bun run build` green with asset copy · `bun audit --prod` 0
 - [ ] CI: `.github/workflows/verify-gate.yml` runs the full documented gate on every push — Actions run green on the pushed commit (no secrets; SQLite provisioned from `.env.example` via `db:generate` + `db:push`)
 - [ ] All 9 sections + 16 wcc components render per §3; dual pricing + image bands present; interactions per F1.8 verified by `agent-browser` + axe
 - [ ] Full booking E2E persists + cleans SQLite truth; all F4.1–F4.7 API contracts pass (400/422/429/honeypot fake-201)
