@@ -1,8 +1,20 @@
 #!/usr/bin/env bash
-# skill-verify.sh — Phase 5 verification for car-care_SKILL.md
+# skill-verify.sh — verification gate for car-care_SKILL.md claims.
 # Every check mirrors the to-distill-project-into-skill validation checklist.
+#
+# Cycle 4 (2026-09-13) fixes:
+#  - Repo-relative paths (was hardcoded /home/z/my-project — broke when the
+#    repo was cloned one level deeper; the script silently ran against a
+#    non-repo directory and every check failed or no-op'd).
+#  - Test-count expectation updated 49 → 66 (vitest) to match the suite.
+#  - NEW check 9: git invariants — .env and SQLite .db files must NEVER be
+#    tracked (commit 34a172d regressed this once; this check exists so a
+#    future `git add .`/`git add -f` fails the gate instead of shipping PII).
+#    skills/ is excluded (reference material, not part of the build).
 set -u
-cd /home/z/my-project
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
 S=car-care_SKILL.md
 ERRORS=0
 
@@ -17,9 +29,8 @@ done
 
 echo "=== 2. Test count claim ==="
 ACTUAL=$(TZ=UTC npm test 2>&1 | rg -o "Tests\s+[0-9]+ passed \([0-9]+\)" | rg -o "[0-9]+ passed \([0-9]+\)" | head -1)
-CLAIMED=$(rg -o "49/49" $S | head -1)
-echo "actual: $ACTUAL / claimed: $CLAIMED"
-[ "${ACTUAL%% *}" = "49" ] && echo "OK  tests" || { echo "FAIL tests"; ERRORS=$((ERRORS+1)); }
+echo "actual: ${ACTUAL:-none} / claimed: 66/66 (SKILL project_state)"
+[ "${ACTUAL%% *}" = "66" ] && echo "OK  tests" || { echo "FAIL tests"; ERRORS=$((ERRORS+1)); }
 
 echo "=== 3. Component count claims ==="
 WCC=$(find src/components/wcc -name '*.tsx' | wc -l)
@@ -55,6 +66,29 @@ done
 [ $MISSING -eq 0 ] && echo "OK  sections 1-20 present"
 for a in A B C D; do rg -q "^## Appendix $a:" $S || { echo "FAIL appendix $a"; ERRORS=$((ERRORS+1)); }; done
 echo "OK  appendices A-D present (checked)"
+
+echo "=== 9. Git invariants: no tracked .env / SQLite files (skills/ excluded) ==="
+TRACKED_SECRETS=$(git ls-files 2>/dev/null | rg -v '^skills/' | rg '(^|/)\.env$|\.db$' || true)
+if [ -z "$TRACKED_SECRETS" ]; then
+  echo "OK  no tracked .env or .db files"
+else
+  echo "FAIL tracked files that must never be committed:"
+  echo "$TRACKED_SECRETS"
+  echo "     fix: git rm --cached <files> (SKILL §11.3 / AGENTS.md Git rules)"
+  ERRORS=$((ERRORS+1))
+fi
+
+echo "=== 10. Content-as-data: no hardcoded prices or shop phone in components ==="
+# Business facts must flow from src/data/wcc/content.ts (PRD hard-fail #1).
+# The shop phone literal is 290-7476; placeholders like 555-0123 are fine.
+CONTENT_HITS=$(rg -n 'usd\([0-9]|\$[0-9]|290-7476' src/components/ 2>/dev/null || true)
+if [ -z "$CONTENT_HITS" ]; then
+  echo "OK  components carry no hardcoded prices / phone"
+else
+  echo "FAIL hardcoded business facts in components (use content.ts exports):"
+  echo "$CONTENT_HITS"
+  ERRORS=$((ERRORS+1))
+fi
 
 echo ""
 echo "================================"
