@@ -1,9 +1,9 @@
 # We Care Car Care — car-care
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.3-000000?style=flat-square&logo=next.js)
-![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react&logoColor=black)
+![React](https://img.shields.io/badge/React-19.3-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?style=flat-square&logo=prisma&logoColor=white)
 ![SQLite](https://img.shields.io/badge/DB-SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![bun](https://img.shields.io/badge/runtime-bun_1.3-000?style=flat-square)
@@ -34,14 +34,14 @@ A single-page site built to convert local search traffic into detail appointment
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
 | Web framework | Next.js (App Router) | 16.3.5 | Single route + route handlers, standalone output |
-| UI runtime | React | 19.2.3 | Server components + client islands |
+| UI runtime | React | 19.3.0 | Server components + client islands |
 | Language | TypeScript | 5.9.3 | Strict types across content/data/API |
-| Styling | Tailwind CSS | 4.1.18 | CSS-first tokens in `globals.css` |
+| Styling | Tailwind CSS | 4.3.3 | CSS-first tokens in `globals.css` |
 | UI primitives | shadcn/ui (Radix) | — | Dialog, sheet, accordion, carousel, sonner |
 | State | Zustand | 5.0.x | Dialog orchestration store |
-| Validation | Zod | 4.x | API request schemas (`src/lib/wcc/schemas.ts`) |
-| Tests | Vitest | 3.x | Unit suite over lib logic + schemas + store |
-| ORM | Prisma | 6.19.2 | Schema + client |
+| Validation | Zod | 4.6.4 | API request schemas (`src/lib/wcc/schemas.ts`) |
+| Tests | Vitest | 5.0.0 | Unit suite over lib logic + schemas + store |
+| ORM | Prisma | 6.19.3 | Schema + client |
 | Database | SQLite | — | Single-file persistence (`db/custom.db`) |
 | Package manager / runtime | bun | 1.3.x | Installs, dev server, prod server |
 
@@ -180,6 +180,7 @@ That is the only variable. There are no auth keys or third-party services.
 - Before every commit: `npm test` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
 - Keep `db/` untracked (PII). `bun run db:push` recreates `db/custom.db` locally after cloning.
 - Conventional Commits on `main`; keep commits atomic.
+- Deep engineering reference: **`car-care_SKILL.md`** (repo root) — design system, patterns, anti-patterns, debugging guide, and pre-ship checklist distilled from the build + audit history.
 
 ## License
 

@@ -2,6 +2,8 @@
 
 Marketing + booking site for We Care Car Care (auto detailing, Framingham MA), pushed to `github.com/nordeim/car-care`. Next.js 16 App Router, single page (`/`) with two dialogs and two JSON APIs, SQLite via Prisma.
 
+> Deep reference: **`car-care_SKILL.md`** (repo root) — design system, coding patterns, anti-patterns, debugging guide, pre-ship checklist. This file is the compact onboarding; that one is the full engineering skill.
+
 ## Commands
 
 Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.

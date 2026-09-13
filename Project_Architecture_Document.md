@@ -1,16 +1,17 @@
-# We Care Car Care (car-care) — Master Project Architecture Document (PAD) v1.0.0
+# We Care Car Care (car-care) — Master Project Architecture Document (PAD) v1.1.1
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
-**Companion Documents:** `README.md` (public-facing), `CLAUDE.md` (agent instructions), `AGENTS.md` (compact onboarding), `docs/prompt-to-create.md` (origin brief)
+**Companion Documents:** `README.md` (public-facing), `CLAUDE.md` (agent instructions), `AGENTS.md` (compact onboarding), `car-care_SKILL.md` (distilled engineering skill — patterns, anti-patterns, debugging, pre-ship checklist), `docs/prompt-to-create.md` (origin brief)
 **Last Updated:** 2026-09-13
 **Audience:** Senior Engineers, Tech Leads, DevOps, and Onboarding Engineers
 **Rule:** Every architectural decision in this document traces to a specific rationale. Nothing is here "because it's popular."
 
 ---
 
-#### Revision Block — v1.1.0 (Tracked Changes)
+#### Revision Block — v1.1.1 (Tracked Changes)
 
+- `[MA]` v1.1.1 — dependency-version realignment (React 19.3.0, Tailwind 4.3.3, Zod 4.6.4, Vitest 5.0.0, Prisma 6.19.3, ESLint 9.39.5 — corrected against `bun.lock` after the v1.1.0 upgrades left stale numbers); ADR-001 decision text updated to reflect that all `wcc/` components became `"use client"` islands in v1.1.0; added `car-care_SKILL.md` (v1.0.0, 1,017 lines) as a companion document — distilled via the six-phase `to-distill-project-into-skill` process with all facts verified against the working tree.
 - `[MA]` v1.1.0 — post-audit remediation: Next 16.3.5 security upgrade, 44 unused dependencies + 39 unused ui primitives pruned, tsconfig scoping + build type enforcement, `db/custom.db` untracked, Vitest suite (49 tests) introduced, timezone-safe date rules, shared rate-limit/schemas modules, toast wiring fix (sonner), two-tone amber+teal accent system, dual sedan/SUV pricing in cards, package card imagery, FAQ card styling, final-CTA imagery, mobile call FAB, app icon + sitemap. Full audit trail in `docs/audit-and-remediation-2026-09.md`.
 - `[CA]` Known-issues table includes honest gaps rather than aspirational claims.
 - `[SYN]` v1.0.0 — initial PAD generated from full codebase analysis (15 site components, 3 API routes, Prisma schema, styling system, build scripts).
@@ -44,19 +45,19 @@ This is the single source of truth for how the car-care codebase is built, why i
 | Layer | Technology | Version | Key Rationale |
 |-------|-----------|---------|---------------|
 | Web framework | Next.js (App Router) | 16.3.5 | Single route + route handlers in one deployable; RSC keeps the page light with client islands only where interactive; upgraded from 16.1.3 for security advisories (ADR-008) |
-| UI runtime | React | 19.2.3 | Required by Next 16; ref-prop components, no forwardRef boilerplate |
+| UI runtime | React | 19.3.0 | Required by Next 16; ref-prop components, no forwardRef boilerplate |
 | Language | TypeScript | 5.9.3 | Content-as-data pattern (§3.3) only holds with strict typing |
-| Styling | Tailwind CSS | 4.1.18 | CSS-first tokens colocate the brand system with its utilities |
+| Styling | Tailwind CSS | 4.3.3 | CSS-first tokens colocate the brand system with its utilities |
 | UI primitives | shadcn/ui (Radix) | 9 components vendored | Only the load-bearing set survives the dependency prune: accordion, button, carousel, dialog, input, label, sheet, sonner, textarea (ADR-008) |
 | State | Zustand | 5.0.x | 30-line dialog store beats Context boilerplate (ADR-004) |
-| Validation | Zod | 4.3.5 | One schema per endpoint in `src/lib/wcc/schemas.ts`; server is the authority |
-| Tests | Vitest | 3.x | 49-test unit suite over lib logic, schemas, rate limiter, store (ADR-009) |
-| ORM | Prisma | 6.19.2 | Typed models + `db:push` workflow fits single-file SQLite |
+| Validation | Zod | 4.6.4 | One schema per endpoint in `src/lib/wcc/schemas.ts`; server is the authority |
+| Tests | Vitest | 5.0.0 | 49-test unit suite over lib logic, schemas, rate limiter, store (ADR-009) |
+| ORM | Prisma | 6.19.3 | Typed models + `db:push` workflow fits single-file SQLite |
 | Database | SQLite | (file: `db/custom.db`, gitignored) | Zero-ops persistence for a single-operator local business |
 | Carousel | embla-carousel-react | 8.6.0 | Lightweight testimonial carousel |
-| Toasts | sonner | 2.x | Submit feedback in dialogs (`<Toaster />` mounted in layout) |
+| Toasts | sonner | 2.0.8 | Submit feedback in dialogs (`<Toaster />` mounted in layout) |
 | Package manager / runtime | bun | 1.3.x | Install + dev + prod server in one toolchain |
-| Lint | ESLint (flat config) | 9.39.2 | `next/core-web-vitals` + `next/typescript` presets |
+| Lint | ESLint (flat config) | 9.39.5 | `next/core-web-vitals` + `next/typescript` presets |
 | Proxy | Caddy | `:81` (sandbox) | Reverse proxy to Next standalone server on `:3000` |
 
 ### 1.3 Architecture Decision Records (ADRs)
@@ -64,7 +65,7 @@ This is the single source of truth for how the car-care codebase is built, why i
 **ADR-001: Single-page Next.js 16 App Router site with client-island dialogs**
 
 - **Context:** The product is a local-service marketing funnel: one story, one conversion path (book or call). Content changes monthly at most. The build must remain fast to iterate and cheap to host.
-- **Decision:** One route (`src/app/page.tsx`) composing nine server-rendered sections; the only `"use client"` islands are the booking dialog, question dialog, header (mobile sheet), before/after slider, and testimonial carousel. All form submission goes through JSON route handlers (`src/app/api/*/route.ts`).
+- **Decision:** One route (`src/app/page.tsx`) composing nine sections plus header/footer chrome; after the v1.1.0 visual remediation every `src/components/wcc/` component is a `"use client"` island (scroll reveals, dialog store, carousel), while `layout.tsx`/`page.tsx`/`sitemap.ts` and the API routes stay server-side. All form submission goes through JSON route handlers (`src/app/api/*/route.ts`).
 - **Rationale:** A single RSC page ships minimal client JS; interactive complexity is isolated to two dialogs instead of spread across routes. Multi-page routing would add navigation overhead with zero SEO benefit for a one-location business already covered by JSON-LD.
 - **Consequences:** Positive — tiny client bundle, trivial mental model, one page to test E2E. Negative — the page grows long (mitigated by section components); deep links only exist as `#anchors`.
 - **Alternatives Rejected:** Separate `/booking` page (breaks the single CTA flow); a site builder / hosted CMS (not a code asset, no custom booking rules); SPA + separate API (two deployables for no gain).

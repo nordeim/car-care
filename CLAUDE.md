@@ -9,7 +9,7 @@ last_updated: 2026-09-13
 
 Customer-facing marketing and booking site for **We Care Car Care**, an auto detailing and ceramic coating studio in Framingham, MA (MetroWest Boston). One page sells the services; a 4-step dialog turns visitors into persisted booking requests; a question dialog captures inquiries. No accounts, no admin surface — leads land in SQLite for the owner to action.
 
-**Tech Stack**: Next.js 16.3 (App Router, standalone output), React 19, TypeScript 5.9, Tailwind CSS 4, shadcn/ui (Radix), Prisma 6 + SQLite, Zustand 5, Zod 4, Vitest 3, bun 1.3.
+**Tech Stack**: Next.js 16.3.5 (App Router, standalone output), React 19.3, TypeScript 5.9, Tailwind CSS 4.3, shadcn/ui (Radix), Prisma 6.19 + SQLite, Zustand 5, Zod 4.6, Vitest 5, bun 1.3. Exact locked versions: `bun pm ls` (or see `car-care_SKILL.md` §2).
 
 ## Core Identity & Purpose
 
@@ -143,6 +143,7 @@ GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25
 - Explain *why* in code comments at non-obvious decisions (see `reveal.tsx`, `before-after.tsx` for the house style).
 - Update `content.ts` when business facts change; keep JSON-LD in `layout.tsx` in sync.
 - Deep reference: `Project_Architecture_Document.md` (ADRs, security model, data architecture).
+- Engineering skill: `car-care_SKILL.md` (repo root) — distilled design system, coding patterns, anti-patterns, debugging guide, pre-ship checklist.
 
 ## Project-Specific Standards
 
