@@ -15,13 +15,14 @@ Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.
 | `bun run build` | Prod build **and** copies `static` + `public` into `.next/standalone/` — the copy step is required for `start` to work. TypeScript errors **fail** this build |
 | `bun run start` | Runs `.next/standalone/server.js` under bun with `NODE_ENV=production`, logs to `server.log` |
 | `npm test` | Vitest — 49 unit tests (`npm run test:watch` for watch mode) |
+| `bun run e2e` | Playwright — 29 e2e tests on the standalone build (:3100; `bun run build` first; `e2e:all`, `e2e:report` variants) |
 | `bun run lint` | ESLint 9 flat config |
 | `bunx tsc --noEmit` | Typecheck — clean by default now (reference dirs excluded) |
 | `bun run db:push` | Push Prisma schema to SQLite (`--accept-data-loss` is part of the script) |
 | `bun run db:generate` | Regenerate Prisma client after schema edits |
 | `bun run db:migrate` / `db:reset` | Prisma migrate dev / reset |
 
-**Verification gate before every commit**: `npm test` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
+**Verification gate before every commit**: `npm test` && `bun run e2e` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
 
 ## Architecture
 
@@ -42,6 +43,8 @@ Tailwind **v4 CSS-first**: tokens are `@theme inline` + `:root` in `src/app/glob
 ## Tests
 
 Vitest (`vitest.config.ts`, node env, `@/` alias). `src/lib/wcc/__tests__/` holds the suites: `booking.test.ts` (pricing/slots regression locks), `dates.test.ts` (timezone-safe rules), `schemas.test.ts` (accept/reject matrix), `rate-limit.test.ts` (window + prune), `booking-store.test.ts` (dialog presets). Run green under UTC / America/New_York / Asia/Singapore — keep it that way when touching date logic.
+
+Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production build** via `bun run start` (never `next dev`) on :3100: smoke (sections, dual pricing, sliders, lazy images, mobile FAB, console-error-free), SEO/JSON-LD, booking funnel with SQLite server-truth assertions + test-row cleanup, API contracts (400/422/429/honeypot/201, unique `x-forwarded-for` per test), and axe a11y gates (critical + serious). Specs are typechecked by `tsc` (tsconfig includes `e2e/`). Env template: `.env.example` → `cp .env.example .env`.
 
 ## Gotchas
 

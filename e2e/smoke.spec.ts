@@ -11,6 +11,14 @@ test.describe("home smoke", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/car\s*deserves\s*better/i);
     await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
     await expect(page.getByRole("contentinfo")).toBeVisible();
+    // LCP asset discipline (R-2): the hero image ships responsive variants so
+    // phones download a small file, and is fetched with high priority.
+    const heroImg = page.locator('img[src*="hero-car"]');
+    await expect(heroImg).toHaveAttribute("fetchpriority", "high");
+    const srcset = await heroImg.getAttribute("srcset");
+    expect(srcset, "hero img needs a responsive srcset").toBeTruthy();
+    expect(srcset).toMatch(/640w/);
+    expect((srcset?.match(/,|^\//g) ?? []).length).toBeGreaterThanOrEqual(1);
   });
 
   test("renders all eight landing sections", async ({ page }) => {

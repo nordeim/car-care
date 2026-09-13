@@ -83,6 +83,7 @@ bun run dev
 | `bun run build` | Prod build + copies `static`/`public` into `.next/standalone/` — type errors fail the build |
 | `bun run start` | Serve standalone build with bun (`server.log`) |
 | `npm test` | Vitest unit suite (49 tests) |
+| `bun run e2e` | Playwright e2e suite (29 tests) on the standalone build — `bun run build` first; suite manages its own server on :3100 (`e2e:all`, `e2e:report`) |
 | `bun run lint` | ESLint 9 (flat config) |
 | `bunx tsc --noEmit` | Type check — mandatory |
 | `bun run db:push` | Apply `prisma/schema.prisma` to SQLite (accepts data loss) |
@@ -96,6 +97,8 @@ bun run dev
 ## Testing Strategy
 
 **Vitest unit suite** in `src/lib/wcc/__tests__/` (`npm test`, 49 tests): pricing/quote logic, day-slot generation, **timezone-safe date rules** (verify under multiple `TZ`), zod schemas (accept/reject matrix), the shared rate limiter, and the dialog store. Use TDD for logic changes: write the failing test first (`RED`), implement (`GREEN`), refactor with the suite green.
+
+**Playwright e2e suite** in `e2e/` (`bun run e2e`, 29 tests) — adapted from `nordeim/home-financing`: runs the standalone production server (never `next dev`), asserts booking-funnel server truth in SQLite with test-row cleanup, API contracts (400/422/429/honeypot/201) with unique `x-forwarded-for` per test, SEO/JSON-LD, smoke (sections, dual pricing, sliders, lazy images, mobile FAB), and axe-core a11y gates (critical + serious must be zero). Specs are included in `tsc` typechecking. Setup uses `cp .env.example .env`.
 
 Before delivering changes:
 

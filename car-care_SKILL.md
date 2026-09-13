@@ -7,10 +7,12 @@ description: >
   so any coding agent can extend, debug, onboard onto, or replicate the site
   without re-learning its hard-won lessons: timezone-safe date rules, honeypot
   + sliding-window bot defense, dark-first two-tone design system, 4-step
-  booking dialog, and the 49-test Vitest suite that locks it all down.
-version: 1.1.0
+  booking dialog, and the test pyramid that locks it all down: 49 Vitest
+  unit tests (timezone-verified) plus a 29-test Playwright e2e suite that
+  drives the standalone production build.
+version: 1.2.0
 last_updated: 2026-09-13
-project_state: 49/49 tests green (UTC + America/New_York + Asia/Singapore) · lint clean · tsc --noEmit clean · bun audit --prod clean (0 runtime findings) · verified 2026-09-13
+project_state: 49/49 unit tests green (UTC + America/New_York + Asia/Singapore) · 29/29 e2e green (standalone build) · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · verified 2026-09-13
 tags:
   - nextjs16
   - react19
@@ -119,7 +121,7 @@ All versions are **locked versions from `bun.lock`** (verified 2026-09-13 via `b
 | Validation | `zod` | 4.6.4 | Shared schemas in `src/lib/wcc/schemas.ts` — server-authoritative, client-reusable. |
 | ORM | `prisma` + `@prisma/client` | 6.19.3 / 6.19.3 | `db:push` workflow (no migration files, ADR-002). |
 | Database | SQLite | — | Single file `db/custom.db` (**gitignored — customer PII**). |
-| Tests | `vitest` | 5.0.0 | Node environment, `@/` alias; 49 tests / 5 files. |
+| Tests | `vitest` + `@playwright/test` | 5.0.0 / 1.63.0 | Vitest: node env, `@/` alias, 49 unit tests / 5 files. Playwright: chromium, serial, 29 e2e tests / 7 spec files against the standalone build on :3100 (ADR-010). |
 | Icons | `lucide-react` | 0.525.0 | Icon usage is `aria-hidden` + adjacent text labels. |
 | Image optimization | `sharp` | 0.35.4 | Used by `scripts/optimize-images.mjs` (WebP pipeline). |
 | Utility | `class-variance-authority` / `clsx` / `tailwind-merge` | 0.7.1 / 2.1.1 / 3.7.0 | `cn()` in `src/lib/utils.ts`. |
@@ -129,7 +131,7 @@ All versions are **locked versions from `bun.lock`** (verified 2026-09-13 via `b
 
 **Deployment shape:** `output: "standalone"` — `bun run build` also copies `.next/static` and `public` into `.next/standalone/`; `bun run start` serves it on :3000 behind Caddy (`:81` in the sandbox, per `Caddyfile`). Single bun process; the only in-process state is the rate-limiter `Map` (deliberately ephemeral, ADR-005).
 
-**What is intentionally NOT here:** no auth (public booking site), no CMS (content is a typed TS module, ADR-003), no analytics, no third-party scripts, no i18n, no CI yet (manual §11 gate; a minimal GitHub Actions lint+tsc+build is the natural first addition), no component/E2E tests (49 lib-level unit tests only — honest gap, see §11 and Appendix C).
+**What is intentionally NOT here:** no auth (public booking site), no CMS (content is a typed TS module, ADR-003), no analytics, no third-party scripts, no i18n, no CI yet (manual §11 gate; a minimal GitHub Actions lint+tsc+test+e2e is the natural first addition), no visual-regression snapshots (deliberate — maintenance-heavy while the design evolves).
 
 ---
 
@@ -143,7 +145,7 @@ cd car-care
 bun install                      # or: npm install (bun.lock is canonical)
 
 # Database — SQLite file, no services needed
-echo 'DATABASE_URL="file:../db/custom.db"' > .env
+cp .env.example .env   # → DATABASE_URL="file:../db/custom.db"
 bun run db:generate              # regenerate Prisma client (needed after clone/schema edits)
 bun run db:push                  # create/push schema to db/custom.db (--accept-data-loss is in the script)
 
@@ -158,18 +160,19 @@ bun run dev                      # http://localhost:3000, logs tee'd to dev.log
 2. Any **Book Now** CTA → walk all 4 dialog steps → submit → `WCC-XXXXXX` confirmation toast appears.
 3. `bunx prisma studio` → the row exists in the `Booking` table. (Delete test rows when done — PII hygiene.)
 4. `npm test` → 49/49 pass. `bun run lint` → clean.
+5. `bun run build` once, then `bun run e2e` → 29/29 pass on the standalone build (funnel + DB truth, API contracts, SEO, axe a11y).
 
 ### 3.3 Configuration files
 
 | File | Role | Notes |
 |---|---|---|
 | `next.config.ts` | Next config | `output: "standalone"`, `typescript.ignoreBuildErrors: false` (build enforces types — keep it that way), `reactStrictMode: true`. |
-| `tsconfig.json` | TypeScript | `strict` + `noImplicitAny: true`; `include` scoped to `src/**` + `next-env.d.ts` + `vitest.config.ts` + `.next/types/**` — **must not** revert to `**/*.ts` (untracked reference dirs like `foundation/` caused 135 phantom errors, §9). `exclude`: `node_modules`, `foundation`, `examples`, `skills`, `docs`, `db`. |
+| `tsconfig.json` | TypeScript | `strict` + `noImplicitAny: true`; `include` scoped to `src/**` + `e2e/**` + `playwright.config.ts` + `vitest.config.ts` + `next-env.d.ts` + `.next/types/**` — **must not** revert to `**/*.ts` (untracked reference dirs like `foundation/` caused 135 phantom errors, §9). `exclude`: `node_modules`, `foundation`, `examples`, `skills`, `docs`, `db`. |
 | `eslint.config.mjs` | Lint | Flat config: `next/core-web-vitals` + `next/typescript` + a large off-rules block (sandbox template defaults). Ignores: `node_modules`, `.next`, `out`, `build`, `next-env.d.ts`, `examples`, `skills`, `foundation`, `scripts`. |
 | `vitest.config.ts` | Tests | `environment: "node"` (no jsdom — lib-level tests only), `include: src/**/*.test.ts(x)`, excludes `foundation/examples/skills/.next`, `@/` alias → `./src`. |
 | `postcss.config.mjs` | CSS pipeline | `@tailwindcss/postcss` only. |
 | `prisma/schema.prisma` | Data model | SQLite datasource via `env("DATABASE_URL")`; `Booking` + `Question` models (§20). |
-| `.env` | Environment | Exactly **one** variable: `DATABASE_URL`. Gitignored. No auth keys exist. |
+| `.env` | Environment | Exactly **one** variable: `DATABASE_URL`. Gitignored; commit the `.env.example` template instead (`.gitignore` carries `!.env.example`). |
 | `components.json` | shadcn config | Registry paths for adding new primitives via CLI. |
 
 ### 3.4 Scripts (`package.json`)
@@ -181,6 +184,7 @@ bun run dev                      # http://localhost:3000, logs tee'd to dev.log
 | `start` | `NODE_ENV=production bun .next/standalone/server.js`, logs to `server.log` |
 | `lint` | `eslint .` |
 | `test` / `test:watch` | `vitest run` / watch mode |
+| `e2e` / `e2e:all` / `e2e:report` | Playwright: chromium project / all projects / open the HTML report. Needs `bun run build` first; the suite manages its own standalone server on :3100 (`E2E_PORT`, `E2E_BASE_URL` knobs) |
 | `db:push` / `db:generate` / `db:migrate` / `db:reset` | Prisma lifecycle (`db:push` includes `--accept-data-loss`) |
 
 ### 3.5 Sandbox-only artifacts (never import, never commit)
@@ -521,8 +525,9 @@ The gate every commit on `main` has passed. Run in order; any failure blocks the
 ```bash
 npm test                      # 49/49 — also run under TZ=UTC and TZ=Asia/Singapore when dates changed
 bun run lint                  # eslint . — clean
-bunx tsc --noEmit             # 0 errors (checks more than the build does)
+bunx tsc --noEmit             # 0 errors (checks more than the build does; covers src/ AND e2e/)
 bun run build                 # standalone build + asset copy; type errors fail it
+bun run e2e                   # 29/29 on the standalone build (funnel + DB truth, API contracts, SEO, axe a11y)
 ```
 
 ### 11.2 Runtime smoke (agent-browser or manual)
@@ -975,6 +980,15 @@ Honeypot on either route: non-empty `company` → fake `201`, no row written. Su
 ---
 
 ## Appendix C: Audit History
+
+**2026-09-13 — audit cycle 2: e2e suite + a11y + perf (v1.2.0)**
+
+- Added `.env.example` (path semantics verified for CLI + runtime); `.gitignore` un-ignores it.
+- Playwright e2e suite adopted from `nordeim/home-financing` (ADR-010): 29 tests — smoke, SEO/JSON-LD, booking funnel with SQLite server-truth + cleanup, API contracts (400/422/429/honeypot/201, unique XFF per test), axe gates (critical + serious). Suite caught the missing `robots.txt` `Sitemap:` directive (red → green).
+- Visual parity re-audit vs the source: two VLM passes + DOM verification of every claim — 3 of 6 VLM-flagged gaps were false positives; parity holds; no code changes required.
+- Lighthouse on the standalone build: a11y 0.97 → **1.0** (aria-prohibited-attr star spans → `role="img"`; logo Label-in-Name fixed by composing the accessible name from content + `sr-only`; aria-label dropped from the CTA rating `<p>`); performance 0.71 → **0.80** (hero made responsive: 640w/1024w srcset, phones 44 KB vs 161 KB; `fetchPriority="high"` was already present — caught by the plan-validation step).
+- Dead `/api` hello-world route deleted; `e2e/` + `playwright.config.ts` added to tsconfig include.
+- Full trail: `docs/audit-e2e-2026-09.md`.
 
 **2026-09-13 — full visual + code audit → remediation (v1.1.0, commit `7a4a4e0`)**
 

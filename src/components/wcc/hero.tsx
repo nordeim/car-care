@@ -17,6 +17,12 @@ export function Hero() {
       <div className="absolute inset-0 -z-10">
         <img
           src="/images/hero-car.webp"
+          srcSet="
+            /images/hero-car-640w.webp 640w,
+            /images/hero-car-1024w.webp 1024w,
+            /images/hero-car.webp 1344w
+          "
+          sizes="100vw"
           alt="Glossy black sedan with water beading on fresh paint inside a dark detailing studio"
           className="h-full w-full object-cover object-center"
           fetchPriority="high"

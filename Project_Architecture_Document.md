@@ -1,4 +1,4 @@
-# We Care Car Care (car-care) — Master Project Architecture Document (PAD) v1.1.2
+# We Care Car Care (car-care) — Master Project Architecture Document (PAD) v1.2.0
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
@@ -9,8 +9,9 @@
 
 ---
 
-#### Revision Block — v1.1.2 (Tracked Changes)
+#### Revision Block — v1.2.0 (Tracked Changes)
 
+- `[MA]` v1.2.0 — audit cycle 2 (see `docs/audit-e2e-2026-09.md`): `.env.example` added (`.gitignore` negation `!.env.example`); Playwright e2e suite adopted from `nordeim/home-financing` (29 tests, standalone webServer on :3100, `e2e/` typechecked by tsconfig — ADR-010); `public/robots.txt` gained its missing `Sitemap:` directive; a11y remediation (lighthouse 0.97 → 1.0): `role="img"` star spans, content-composed logo name (Label-in-Name), aria-label dropped from the CTA rating `<p>`; hero image made responsive (640w/1024w srcset — phones download 44 KB vs 161 KB); dead `/api` hello-world route deleted. Gates: 49 unit × 3 TZ + 29 e2e green; lighthouse a11y/bp/seo 1.0, perf 0.80.
 - `[MA]` v1.1.2 — supply-chain hardening: `prisma` CLI moved to `devDependencies` (never runtime-imported — only `@prisma/client` via `src/lib/db.ts`); `overrides` added to `package.json` pinning `defu@6.1.7`, `deepmerge-ts@8.0.2`, `baseline-browser-mapping@2.11.23`; `bun audit --prod` now reports zero findings (full-audit remainder is dev-tooling chains only — 24 findings, 0 critical); pre-deploy checklist + known-issues table updated; `car-care_SKILL.md` refreshed to v1.1.0 (project state, S1–S3 follow-up, audit history). All gates re-verified: 49/49 tests × 3 timezones, lint + tsc clean, build green, E2E booking + toast re-confirmed.
 - `[MA]` v1.1.1 — dependency-version realignment (React 19.3.0, Tailwind 4.3.3, Zod 4.6.4, Vitest 5.0.0, Prisma 6.19.3, ESLint 9.39.5 — corrected against `bun.lock` after the v1.1.0 upgrades left stale numbers); ADR-001 decision text updated to reflect that all `wcc/` components became `"use client"` islands in v1.1.0; added `car-care_SKILL.md` (v1.0.0, 1,017 lines) as a companion document — distilled via the six-phase `to-distill-project-into-skill` process with all facts verified against the working tree.
 - `[MA]` v1.1.0 — post-audit remediation: Next 16.3.5 security upgrade, 44 unused dependencies + 39 unused ui primitives pruned, tsconfig scoping + build type enforcement, `db/custom.db` untracked, Vitest suite (49 tests) introduced, timezone-safe date rules, shared rate-limit/schemas modules, toast wiring fix (sonner), two-tone amber+teal accent system, dual sedan/SUV pricing in cards, package card imagery, FAQ card styling, final-CTA imagery, mobile call FAB, app icon + sitemap. Full audit trail in `docs/audit-and-remediation-2026-09.md`.
@@ -52,7 +53,7 @@ This is the single source of truth for how the car-care codebase is built, why i
 | UI primitives | shadcn/ui (Radix) | 9 components vendored | Only the load-bearing set survives the dependency prune: accordion, button, carousel, dialog, input, label, sheet, sonner, textarea (ADR-008) |
 | State | Zustand | 5.0.x | 30-line dialog store beats Context boilerplate (ADR-004) |
 | Validation | Zod | 4.6.4 | One schema per endpoint in `src/lib/wcc/schemas.ts`; server is the authority |
-| Tests | Vitest | 5.0.0 | 49-test unit suite over lib logic, schemas, rate limiter, store (ADR-009) |
+| Tests | Vitest + Playwright | vitest 5.0.0 / @playwright/test 1.63.0 | 49 unit tests (ADR-009) + 29 e2e tests on the standalone build (ADR-010) |
 | ORM | Prisma | 6.19.3 | Typed models + `db:push` workflow fits single-file SQLite |
 | Database | SQLite | (file: `db/custom.db`, gitignored) | Zero-ops persistence for a single-operator local business |
 | Carousel | embla-carousel-react | 8.6.0 | Lightweight testimonial carousel |
@@ -132,8 +133,16 @@ This is the single source of truth for how the car-care codebase is built, why i
 - **Context:** The v1.0.0 audit found zero tests and a timezone bug: the Sunday-closure and 60-day-window rules parsed the ISO date in **host-local** time, so a UTC-hosted server would shift the closed-day boundary by hours away from the business's `America/New_York` calendar.
 - **Decision:** Add Vitest (node env, `@/` alias). Suites cover `quoteFor`/`buildDayOptions`/`usd`, the extracted zod schemas (`src/lib/wcc/schemas.ts`), the shared `SlidingWindowRateLimiter` (`src/lib/wcc/rate-limit.ts`), and the zustand store. Date logic moved to `src/lib/wcc/dates.ts`: weekday derived from the ISO string via UTC-midnight parsing, "today" derived from `America/New_York` via `Intl.DateTimeFormat` — both host-timezone independent. The suite is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore`.
 - **Rationale:** The API is the authority on business rules; those rules deserve executable specifications. The three-timezone run is the regression proof for the fix.
-- **Consequences:** Positive — 49 tests gate every commit (`npm test`); route handlers shrank to pipeline-only code importing shared modules. Negative — no component/E2E tests yet (dialog flow is still manually verified).
+- **Consequences:** Positive — 49 tests gate every commit (`npm test`); route handlers shrank to pipeline-only code importing shared modules. Negative — none remaining; the "no E2E" gap was closed in v1.2.0 (ADR-010).
 - **Alternatives Rejected:** Jest (slower, more config); testing routes end-to-end only (slower feedback, needs a DB fixture per run); fixing the timezone bug without a test (exactly how it regresses).
+
+**ADR-010: Playwright e2e suite against the standalone build (v1.2.0)**
+
+- **Context:** Cycle-1 left the dialog flow and API surface manually verified only; the repo had no executable UI contract. The reference repo (`nordeim/home-financing`) had already distilled a working pattern: production webServer, request-fixture API tests with unique `x-forwarded-for`, and axe-core a11y gates.
+- **Decision:** Adopt Playwright (chromium, serial workers, port 3100). The `webServer` runs the standalone artifact via `bun run start` — never `next dev`, which Next refuses under `output: "standalone"` anyway — so e2e validates the shipped bundle. Specs: smoke, SEO/JSON-LD, booking funnel with SQLite server-truth assertions + `PW E2E`-prefixed row cleanup, API contracts, axe gates (critical + serious). `e2e/` is included in tsconfig so `tsc` typechecks the specs.
+- **Rationale:** UI flows asserted against server truth (the DB row), not just DOM state — the same rigor the unit suite applies to business rules. The standalone target catches bundling/serving regressions dev-mode hides.
+- **Consequences:** Positive — 29 e2e tests lock the funnel, API contracts, SEO, and a11y (lighthouse a11y 1.0); the suite caught the missing robots `Sitemap:` directive before release. Negative — serial execution against one SQLite file (slower, ~30 s); browsers are opt-in per environment (chromium only by default).
+- **Alternatives Rejected:** Cypress (heavier runner, no request-fixture parity); visual-regression snapshots (maintenance-heavy for a design still evolving); e2e against dev HMR (would validate a different artifact than production serves).
 
 ---
 
@@ -222,8 +231,7 @@ car-care/
 │   ├── app/
 │   │   ├── api/
 │   │   │   ├── bookings/route.ts       ← POST booking pipeline (Layer 2)
-│   │   │   ├── questions/route.ts      ← POST inquiry pipeline (Layer 2)
-│   │   │   └── route.ts                ← template hello-world (unused)
+│   │   │   └── questions/route.ts      ← POST inquiry pipeline (Layer 2)
 │   │   ├── globals.css                 ← Tailwind 4 tokens + brand utilities
 │   │   ├── layout.tsx                  ← fonts, metadata, JSON-LD, Toaster
 │   │   └── page.tsx                    ← the single page (Layer 4)
@@ -557,12 +565,11 @@ No coverage tooling configured. The de facto gate is `npm test` + §8.2 executed
 
 - [ ] `npm test` — 49+ tests green (run once under a non-UTC `TZ` if date logic changed)
 - [ ] `bun run lint` clean
-- [ ] `bunx tsc --noEmit` clean
+- [ ] `bunx tsc --noEmit` clean (covers `src/` **and** `e2e/`)
 - [ ] `bun run build` succeeds (including static/public copy into `.next/standalone/`)
 - [ ] `bun audit --prod` shows no findings (full audit: 0 critical; dev-tool chains acceptable)
-- [ ] Manual booking E2E passed, confirmation code + toast received
-- [ ] Honeypot returns fake `201`, zero rows written
-- [ ] Test rows removed from `db/custom.db`
+- [ ] `bun run e2e` — 29/29 green on the standalone build (includes booking E2E confirmation + toast, honeypot fake-201, and the axe a11y gate)
+- [ ] Test rows removed from `db/custom.db` (the e2e teardown does this; verify `PW E2E` count is 0)
 - [ ] No changes to `.env`, keys, `db/`, or `upload/` staged for commit
 - [ ] `git status` clean; pushed to `origin/main`
 
@@ -649,7 +656,7 @@ Optional inspection: `bunx prisma studio` (browse Booking/Question rows at `http
 | ~~LOW~~ | ~~`ignoreBuildErrors: true` / `reactStrictMode: false` in `next.config.ts`~~ | ~~Type errors surface only via manual tsc~~ | **Resolved v1.1.0** — `ignoreBuildErrors: false`, `reactStrictMode: true`; tsconfig scoped to `src/` (+ noImplicitAny) so `tsc --noEmit` is clean |
 | ~~LOW~~ | ~~Unused template dependencies (`next-auth`, `recharts`, framer-motion, …)~~ | ~~Install weight, audit surface~~ | **Resolved v1.1.0** — 44 deps + 39 ui primitives pruned; `next` upgraded to 16.3.5; 0 critical vulns (ADR-008). Remaining `bun audit` findings are dev-tooling chains only |
 | ~~LOW~~ | ~~Legacy `tailwind.config.ts` coexists with CSS tokens~~ | ~~Contributor confusion~~ | **Resolved v1.1.0** — file deleted; CSS is the only token source |
-| LOW | `src/app/api/route.ts` is an unused hello-world handler | Dead code, misleading API surface | Open — safe to delete |
+| ~~LOW~~ | ~~`src/app/api/route.ts` is an unused hello-world handler~~ | ~~Dead code, misleading API surface~~ | **Resolved v1.2.0** — deleted (audit cycle 2, L-2); route table now `/`, `/_not-found`, `/api/bookings`, `/api/questions`, `/icon.svg`, `/sitemap.xml` |
 | LOW | No slot capacity / double-booking check (same date+time bookable unlimited) | Potential scheduling collisions resolved manually by the owner | Open — needs an availability rule set; slots count is a static placeholder |
 | INFO | No admin/lead-management surface; `Booking.status` stays `"pending"` forever | Owner triages via Prisma Studio (by design for now) | Accepted — roadmap candidate |
 | INFO | Rate limiter trusts the `X-Forwarded-For` chain | Fine behind Caddy; spoofable if `:3000` were exposed directly | Accepted — keep the proxy in front |

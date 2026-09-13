@@ -2,21 +2,23 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 /**
- * Accessibility gate — axe-core on the landing page. Mirrors the reference
- * repo's policy: critical violations fail the build; serious/moderate
- * findings are triaged (documented in the audit doc) rather than hard-failed,
- * because several decorative dark-theme choices (contrast on photography
- * overlays) are deliberate design decisions.
+ * Accessibility gate — axe-core on the landing page. Policy (audit cycle 2):
+ * critical AND serious violations fail the build. Cycle-1 shipped with a
+ * critical-only gate; cycle 2 tightened it after remediating the serious
+ * findings (aria-allowed-attr on star-rating spans, label-content-name-
+ * mismatch on the logo link — see docs/audit-e2e-2026-09.md).
  */
 test.describe("accessibility", () => {
-  test("no critical axe violations on the landing page", async ({ page }) => {
+  test("no critical or serious axe violations on the landing page", async ({ page }) => {
     await page.goto("/");
     const results = await new AxeBuilder({ page }).analyze();
-    const critical = results.violations.filter((v) => v.impact === "critical");
+    const blocking = results.violations.filter(
+      (v) => v.impact === "critical" || v.impact === "serious",
+    );
     expect(
-      critical,
-      `critical a11y violations: ${JSON.stringify(
-        critical.map((v) => ({ id: v.id, nodes: v.nodes.length })),
+      blocking,
+      `critical/serious a11y violations: ${JSON.stringify(
+        blocking.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
         null,
         2,
       )}`,

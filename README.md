@@ -26,7 +26,7 @@ A single-page site built to convert local search traffic into detail appointment
 | 🗄️ Lead persistence | Booking + Question models in SQLite via Prisma; reviewable in Prisma Studio |
 | ✨ Motion with respect | IntersectionObserver scroll reveals, CTA shine sweep — all disabled under `prefers-reduced-motion` |
 | 📱 Mobile call FAB | Floating call button appears after scrolling past the hero (mobile only) |
-| 🧪 Unit tests | Vitest suite (49 tests) covering pricing/date logic, validation schemas, rate limiter, dialog store — run under multiple timezones |
+| 🧪 Tests | Vitest (49 unit tests: pricing/date logic, validation schemas, rate limiter, dialog store) + Playwright (29 e2e tests: smoke, SEO, booking funnel with DB truth, API contracts, axe a11y) against the standalone production build |
 | 🔍 Local SEO | Full metadata, OG/Twitter cards, JSON-LD `AutoWash` schema (address, geo, hours, service areas, rating), `sitemap.xml`, app icon |
 
 ## Architecture
@@ -106,16 +106,25 @@ bun run dev
 1. Open `http://localhost:3000` — the We Care Car Care landing page renders with the hero image and pricing sections.
 2. Click any **Book Now** CTA, walk all 4 steps, submit — you get a `WCC-XXXXXX` confirmation.
 3. `bunx prisma studio` → your row is in the `Booking` table.
-4. `bun run lint` exits clean; `npm test` passes (49 tests).
+4. `bun run lint` exits clean; `npm test` passes (49 tests); `bun run e2e` passes (29 tests — needs `bun run build` first).
 
 ### Tests
 
 ```bash
 npm test            # vitest run — 49 unit tests
 npm run test:watch  # watch mode
+
+# Playwright E2E — runs the standalone production build on :3100.
+# Build first (`bun run build`); the suite manages its own server.
+bun run e2e         # chromium project (default)
+bun run e2e:all     # all configured projects
+bun run e2e:report  # open the HTML report (playwright-report/)
+# Env knobs: E2E_PORT (default 3100), E2E_BASE_URL (reuse external server)
 ```
 
-The suite covers pricing/quote logic, day-slot generation, timezone-safe Sunday/window rules, zod schemas, the shared rate limiter, and the dialog store. It is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore`.
+The unit suite covers pricing/quote logic, day-slot generation, timezone-safe Sunday/window rules, zod schemas, the shared rate limiter, and the dialog store. It is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore`.
+
+The e2e suite (adapted from `nordeim/home-financing`) drives the real standalone server — never `next dev` — and asserts server truth (SQLite rows) for the booking funnel, plus full API contracts (400/422/429/honeypot/201) and axe-core accessibility gates (critical + serious).
 
 ### Production build
 
@@ -161,7 +170,8 @@ That is the only variable. There are no auth keys or third-party services.
 | Site build (page + booking flow + APIs + SEO) | ✅ Done | 16 site components, 2 APIs, Prisma schema, brand system |
 | Verification (lint, typecheck, E2E booking, API contract, mobile 375px) | ✅ Done | Booking E2E persisted + cleaned; honeypot returns fake success |
 | Audit + remediation (visual parity, security, tests) | ✅ Done | See `docs/audit-and-remediation-2026-09.md` — Next 16.3.5, dep pruning, dual pricing, teal accent system, toast fix, FAB |
-| Automated test suite | ✅ Done | Vitest — 49 unit tests over lib/schemas/store |
+| Audit + remediation cycle 2 (E2E suite, a11y, perf) | ✅ Done | See `docs/audit-e2e-2026-09.md` — Playwright 29 e2e, lighthouse a11y/bp/seo 1.0, responsive hero, `.env.example`, dead-route removal |
+| Automated test suite | ✅ Done | Vitest 49 unit (lib/schemas/store) + Playwright 29 e2e (smoke/SEO/funnel/API/a11y) |
 | Admin surface for leads | ❌ Not started | Owner reviews leads via Prisma Studio |
 
 ## Troubleshooting
@@ -177,7 +187,7 @@ That is the only variable. There are no auth keys or third-party services.
 ## Contributing
 
 - Keep all business facts in `src/data/wcc/content.ts` — components and API both derive from it.
-- Before every commit: `npm test` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
+- Before every commit: `npm test` && `bun run e2e` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
 - Keep `db/` untracked (PII). `bun run db:push` recreates `db/custom.db` locally after cloning.
 - Conventional Commits on `main`; keep commits atomic.
 - Deep engineering reference: **`car-care_SKILL.md`** (repo root) — design system, patterns, anti-patterns, debugging guide, and pre-ship checklist distilled from the build + audit history.

@@ -24,12 +24,16 @@ const NAV = [
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <a
-      href="#top"
-      aria-label={`${BUSINESS.name} — back to top`}
-      className={cn("group flex items-center gap-2.5", className)}
-    >
-      <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary font-display text-lg font-bold text-primary-foreground transition-transform group-hover:-rotate-6">
+    // No aria-label: the accessible name is composed from the link's content
+    // (visible wordmark + sr-only hint), which satisfies WCAG 2.5.3
+    // Label-in-Name by construction — an aria-label that re-states the
+    // wordmark fails axe's label-content-name-mismatch when block-level
+    // spans are concatenated without separators (audit cycle 2, M-2).
+    <a href="#top" className={cn("group flex items-center gap-2.5", className)}>
+      <span
+        aria-hidden="true"
+        className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary font-display text-lg font-bold text-primary-foreground transition-transform group-hover:-rotate-6"
+      >
         W
       </span>
       <span className="leading-none">
@@ -40,6 +44,7 @@ export function Logo({ className }: { className?: string }) {
           Car Care
         </span>
       </span>
+      <span className="sr-only"> — back to top</span>
     </a>
   );
 }

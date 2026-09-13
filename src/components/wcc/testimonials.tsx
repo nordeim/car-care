@@ -59,7 +59,11 @@ export function Testimonials() {
                     {t.text}
                   </blockquote>
                   <figcaption className="mt-5 border-t border-border pt-4">
-                    <span className="flex items-center gap-1" aria-label="Rated 5 out of 5 stars">
+                    <span
+                      className="flex items-center gap-1"
+                      role="img"
+                      aria-label="Rated 5 out of 5 stars"
+                    >
                       {[0, 1, 2, 3, 4].map((i) => (
                         <Star key={i} className="h-3.5 w-3.5 fill-primary text-primary" aria-hidden="true" />
                       ))}
