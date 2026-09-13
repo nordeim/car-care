@@ -7,12 +7,12 @@ description: >
   so any coding agent can extend, debug, onboard onto, or replicate the site
   without re-learning its hard-won lessons: timezone-safe date rules, honeypot
   + sliding-window bot defense, dark-first two-tone design system, 4-step
-  booking dialog, and the test pyramid that locks it all down: 49 Vitest
+  booking dialog, and the test pyramid that locks it all down: 57 Vitest
   unit tests (timezone-verified) plus a 29-test Playwright e2e suite that
   drives the standalone production build.
-version: 1.3.0
+version: 1.4.0
 last_updated: 2026-09-13
-project_state: 49/49 unit tests green (UTC + America/New_York + Asia/Singapore) · 29/29 e2e green (standalone build) · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · standalone DB cwd-aware fix · verified 2026-09-13
+project_state: 66/66 unit tests green (UTC + America/New_York + Asia/Singapore) · 31/31 e2e green (standalone build) · live E2E + API contracts verified on prod · security headers (CSP/HSTS/XFO/nosniff) + poweredByHeader off · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · shared db-url.ts resolver + scripts/db.ts CLI wrapper · verified 2026-09-13
 tags:
   - nextjs16
   - react19
@@ -121,7 +121,7 @@ All versions are **locked versions from `bun.lock`** (verified 2026-09-13 via `b
 | Validation | `zod` | 4.6.4 | Shared schemas in `src/lib/wcc/schemas.ts` — server-authoritative, client-reusable. |
 | ORM | `prisma` + `@prisma/client` | 6.19.3 / 6.19.3 | `db:push` workflow (no migration files, ADR-002). |
 | Database | SQLite | — | Single file `db/custom.db` (**gitignored — customer PII**). |
-| Tests | `vitest` + `@playwright/test` | 5.0.0 / 1.63.0 | Vitest: node env, `@/` alias, 49 unit tests / 5 files. Playwright: chromium, serial, 29 e2e tests / 7 spec files against the standalone build on :3100 (ADR-010). |
+| Tests | `vitest` + `@playwright/test` | 5.0.0 / 1.63.0 | Vitest: node env, `@/` alias, 66 unit tests / 8 files. Playwright: chromium, serial, 31 e2e tests / 7 spec files against the standalone build on :3100 (ADR-010). |
 | Icons | `lucide-react` | 0.525.0 | Icon usage is `aria-hidden` + adjacent text labels. |
 | Image optimization | `sharp` | 0.35.4 | Used by `scripts/optimize-images.mjs` (WebP pipeline). |
 | Utility | `class-variance-authority` / `clsx` / `tailwind-merge` | 0.7.1 / 2.1.1 / 3.7.0 | `cn()` in `src/lib/utils.ts`. |
@@ -144,23 +144,23 @@ git clone git@github.com:nordeim/car-care.git
 cd car-care
 bun install                      # or: npm install (bun.lock is canonical)
 
-# Env — DATABASE_URL (portable file:../db/custom.db, runtime cwd-aware) + site URL
+# Env — DATABASE_URL (portable file:../db/custom.db; shared resolver re-anchors it) + site URL
 cp .env.example .env   # → DATABASE_URL="file:../db/custom.db" + NEXT_PUBLIC_SITE_URL/SITE_URL="https://car-care.jesspete.shop"
 bun run db:generate              # regenerate Prisma client (needed after clone/schema edits)
-bun run db:push                  # create/push schema to db/custom.db (--accept-data-loss is in the script)
+bun run db:push                  # scripts/db.ts wrapper → schema lands at <repo>/db/custom.db (--accept-data-loss is in the script)
 
 bun run dev                      # http://localhost:3000 (metadataBase still live URL)
 ```
 
-> ⚠️ **The `DATABASE_URL` path trap + standalone `chdir` trap:** the URL is resolved **relative to `prisma/`** for the CLI, not the repo root. `file:../db/custom.db` → `<repo>/db/custom.db`. Using `file:./custom.db` silently creates `prisma/custom.db`. Additionally, the standalone server (`.next/standalone/server.js`) does `process.chdir(__dirname)` so cwd becomes `.next/standalone` at runtime — a naive relative `file:../db/custom.db` from repo root would then resolve to `standalone/db/custom.db`. `src/lib/db.ts` now normalizes any `file:*db/custom.db` to an absolute repo-root path (cwd-aware: detects `.next/standalone` and walks up; `e2e/helpers/db.ts` mirrors). Keep `.env` as `file:../db/custom.db` — both CLI and runtime now share `db/custom.db`.
+> ⚠️ **The `DATABASE_URL` path traps (CLI vs runtime) + standalone `chdir` trap:** relative `file:` URLs in the DATABASE_URL **env var** are resolved from the schema directory by the prisma CLI but from the **process CWD** by the runtime driver — and a `DATABASE_URL` exported by a parent shell/CI env (or a parent-directory `.env`, which bun auto-loads) silently overrides the repo's own `.env`. The standalone server (`.next/standalone/server.js`) additionally does `process.chdir(__dirname)`, so cwd becomes `.next/standalone` at runtime. `src/lib/wcc/db-url.ts` is the shared, contract-tested resolver (`resolveDatabaseUrl`): it re-anchors any relative `file:*db/custom.db` to an absolute repo-root path (cwd-aware: detects `.next/standalone` and walks up) and passes absolute/non-file URLs through. It is used by `src/lib/db.ts` (runtime) AND `scripts/db.ts` — the CLI wrapper behind every `db:*` package script, which pins the resolved path for prisma. Keep `.env` as `file:../db/custom.db`; run `bun run db:push` (never bare `prisma db push`). Contract: `src/lib/wcc/__tests__/db-url.test.ts`.
 
 ### 3.2 Verification of a working setup
 
 1. `http://localhost:3000` renders the hero + pricing (page 200).
 2. Any **Book Now** CTA → walk all 4 dialog steps → submit → `WCC-XXXXXX` confirmation toast appears.
 3. `bunx prisma studio` → the row exists in the `Booking` table. (Delete test rows when done — PII hygiene.)
-4. `npm test` → 49/49 pass. `bun run lint` → clean.
-5. `bun run build` once, then `bun run e2e` → 29/29 pass on the standalone build (funnel + DB truth, API contracts, SEO, axe a11y).
+4. `npm test` → 66/66 pass. `bun run lint` → clean.
+5. `bun run build` once, then `bun run e2e` → 31/31 pass on the standalone build (funnel + DB truth, API contracts incl. 413, SEO, axe a11y, security headers).
 
 ### 3.3 Configuration files
 
@@ -186,7 +186,7 @@ bun run dev                      # http://localhost:3000 (metadataBase still liv
 | `lint` | `eslint .` |
 | `test` / `test:watch` | `vitest run` / watch mode |
 | `e2e` / `e2e:all` / `e2e:report` | Playwright: chromium project / all projects / open the HTML report. Needs `bun run build` first; the suite manages its own standalone server on :3100 (`E2E_PORT`, `E2E_BASE_URL` knobs) |
-| `db:push` / `db:generate` / `db:migrate` / `db:reset` | Prisma lifecycle (`db:push` includes `--accept-data-loss`) |
+| `db:push` / `db:generate` / `db:migrate` / `db:reset` | Prisma lifecycle via the `scripts/db.ts` wrapper (pins the runtime-resolved absolute DB path; `db:push` includes `--accept-data-loss`) |
 
 ### 3.5 Sandbox-only artifacts (never import, never commit)
 
@@ -365,7 +365,7 @@ Full pattern in §15.6. Essentials: `setPointerCapture` on the divider for drag 
 | `CERAMIC_BENEFITS` | `{title, body}[]` | 4 — used by `ceramic-upsell.tsx` |
 | `TESTIMONIALS` | `Testimonial[]` | 6 — review copy written for this build (spirit of the shop's public Google reviews) |
 | `FAQS` | `Faq[]` | 9 — sentence case (audit fix V5 — never ALL-CAPS triggers) |
-| `SERVICE_AREAS` | `string[]` | 14 towns (Framingham…Holliston) — drives footer + JSON-LD `areaServed` |
+| `SERVICE_AREAS` | `string[]` | 13 towns (Framingham…Holliston — verified against the source site) — drives footer + JSON-LD `areaServed` |
 | `BUSINESS` | const object | name, phone `(508) 290-7476`, `phoneHref tel:+15082907476`, email, address, hours "Mon–Sat · 8:00 AM – 6:00 PM", since 2010, stats {16+, 7,500+, 5.0, 37} |
 | `TIME_SLOTS` | readonly `string[]` | 6 — `"08:00 AM"…"03:30 PM"` — the ONLY legal `time` values (schema-refined) |
 | `BOOKABLE_SERVICES` | `BookableService[]` | 6 — **derived** from the three sources above; each row gets `group`, `allowCeramicAddOn`, one-line `summary` (top-3 features joined), `popular` |
@@ -502,8 +502,9 @@ Every entry below actually happened in this repo's history and either has a test
 |---|---|---|
 | `bun run start` serves missing styles/images | standalone dir lacks static assets | Run `bun run build` (the script copies `.next/static` + `public` into `.next/standalone/`), not bare `next build` |
 | `@prisma/client did not initialize yet` | client not generated after clone/schema edit | `bun run db:generate` |
-| Prisma writes to `standalone/db/custom.db` | Standalone `server.js` does `process.chdir(__dirname)` so cwd becomes `.next/standalone` | Fixed in `src/lib/db.ts` (cwd-aware absolute resolver for any `file:*db/custom.db`; keep `.env` as `file:../db/custom.db`) — see §3.1 trap |
-| Prisma writes to `prisma/custom.db` | `DATABASE_URL` resolves **relative to `prisma/`** for CLI | Use `file:../db/custom.db` (§3.1 trap) |
+| Prisma writes to `standalone/db/custom.db` | Standalone `server.js` does `process.chdir(__dirname)` so cwd becomes `.next/standalone` | Fixed by the shared resolver `src/lib/wcc/db-url.ts` (cwd-aware absolute re-anchor for any `file:*db/custom.db`); keep `.env` as `file:../db/custom.db` — see §3.1 trap |
+| Prisma writes to `prisma/custom.db` | `DATABASE_URL` resolves relative paths from the schema dir (CLI) / CWD (runtime) | Use `file:../db/custom.db` (§3.1 trap) |
+| `db:push` lands the DB outside the repo / ignores `.env` | Inherited env: a parent shell/CI `DATABASE_URL` or a parent-directory `.env` (bun auto-loads it) overrides the repo value | All `db:*` scripts run through `scripts/db.ts`, which pins the runtime-resolved absolute path — always `bun run db:push`, never bare `prisma db push` |
 | `429` while testing the booking API | in-memory limiter: 5 req / 10 min per IP | Restart the dev server to reset (the `Map` is per-process) |
 | Sunday date rejected | intentional — shop closed Sundays (UI **and** API both enforce) | Not a bug |
 | `tsc --noEmit` errors in files you never touched | `include` reverted to `**/*.ts` | Restore the §3.3 scoped include list |
@@ -525,11 +526,11 @@ The gate every commit on `main` has passed. Run in order; any failure blocks the
 ### 11.1 Quality gates (commands)
 
 ```bash
-npm test                      # 49/49 — also run under TZ=UTC and TZ=Asia/Singapore when dates changed
+npm test                      # 66/66 — also run under TZ=UTC and TZ=Asia/Singapore when dates changed
 bun run lint                  # eslint . — clean
 bunx tsc --noEmit             # 0 errors (checks more than the build does; covers src/ AND e2e/)
 bun run build                 # standalone build + asset copy; type errors fail it
-bun run e2e                   # 29/29 on the standalone build (funnel + DB truth, API contracts, SEO, axe a11y)
+bun run e2e                   # 31/31 on the standalone build (funnel + DB truth, API contracts, SEO, axe a11y)
 ```
 
 ### 11.2 Runtime smoke (agent-browser or manual)
@@ -974,7 +975,7 @@ Back/Next gate on per-step validity; presets from the store (service, add-on) ap
 
 | Endpoint | Method | Body (zod) | Success | Failures |
 |---|---|---|---|---|
-| `/api/bookings` | POST | `BookingInput` (serviceKey ∈ BOOKABLE_SERVICES, vehicleType, serviceMode, date (ISO, ≤60d), time ∈ TIME_SLOTS, name 2–80, phone regex, email, address?/city?/notes?, addOnCeramic, company? = honeypot) | `201 {ok, confirmation: "WCC-XXXXXX", priceQuote}` | `400` bad JSON · `422` validation/rules with `issues[]` · `429` rate limit (5/10min/IP) · `500` DB |
+| `/api/bookings` | POST | `BookingInput` (serviceKey ∈ BOOKABLE_SERVICES, vehicleType, serviceMode, date (ISO, ≤60d), time ∈ TIME_SLOTS, name 2–80, phone regex, email, address?/city?/notes?, addOnCeramic, company? = honeypot) | `201 {ok, confirmation: "WCC-XXXXXX", priceQuote}` | `413` body >32KB · `400` bad JSON · `422` validation/rules with `issues[]` · `429` rate limit (5/10min/IP; key = `cf-connecting-ip` else first XFF hop) · `500` DB |
 | `/api/questions` | POST | `QuestionInput` (name 2–80, email, phone?, question 10–2000, company?) | `201 {ok}` | same shape, minus rule failures |
 
 Honeypot on either route: non-empty `company` → fake `201`, no row written. Sunday dates and (non-shop mode + missing address) are business-rule `422`s.
@@ -986,7 +987,7 @@ Honeypot on either route: non-empty `company` → fake `201`, no row written. Su
 **2026-09-13 — audit cycle 2: e2e suite + a11y + perf (v1.2.0)**
 
 - Added `.env.example` (path semantics verified for CLI + runtime); `.gitignore` un-ignores it.
-- Playwright e2e suite adopted from `nordeim/home-financing` (ADR-010): 29 tests — smoke, SEO/JSON-LD, booking funnel with SQLite server-truth + cleanup, API contracts (400/422/429/honeypot/201, unique XFF per test), axe gates (critical + serious). Suite caught the missing `robots.txt` `Sitemap:` directive (red → green).
+- Playwright e2e suite adopted from `nordeim/home-financing` (ADR-010): 31 tests — smoke, SEO/JSON-LD, booking funnel with SQLite server-truth + cleanup, API contracts (400/413/422/429/honeypot/201, unique XFF per test), axe gates (critical + serious). Suite caught the missing `robots.txt` `Sitemap:` directive (red → green).
 - Visual parity re-audit vs the source: two VLM passes + DOM verification of every claim — 3 of 6 VLM-flagged gaps were false positives; parity holds; no code changes required.
 - Lighthouse on the standalone build: a11y 0.97 → **1.0** (aria-prohibited-attr star spans → `role="img"`; logo Label-in-Name fixed by composing the accessible name from content + `sr-only`; aria-label dropped from the CTA rating `<p>`); performance 0.71 → **0.80** (hero made responsive: 640w/1024w srcset, phones 44 KB vs 161 KB; `fetchPriority="high"` was already present — caught by the plan-validation step).
 - Dead `/api` hello-world route deleted; `e2e/` + `playwright.config.ts` added to tsconfig include.
@@ -1018,13 +1019,15 @@ What this catches that `tsc`/`vitest`/`build` cannot: toast renderers that were 
 
 ## Document Provenance & Drift Maintenance
 
-**Provenance.** Distilled 2026-09-13 following the six-phase process (analyze → plan → validate → implement → verify → deliver) from the `to-distill-project-into-skill` meta-skill. Facts were verified against the working tree at `main @ 7a4a4e0`: versions via `bun pm ls`; test counts via `TZ=UTC npm test` (49/49, 5 files); component counts via `find src/components`; colors copied from `globals.css`; z-index and breakpoints via usage scans; contrast ratios computed with the WCAG relative-luminance formula; all referenced file paths spot-checked to exist.
+**Provenance.** Distilled 2026-09-13 following the six-phase process (analyze → plan → validate → implement → verify → deliver) from the `to-distill-project-into-skill` meta-skill. Facts were verified against the working tree at `main @ 7a4a4e0`: versions via `bun pm ls`; test counts via `TZ=UTC npm test`; component counts via `find src/components`; colors copied from `globals.css`; z-index and breakpoints via usage scans; contrast ratios computed with the WCAG relative-luminance formula; all referenced file paths spot-checked to exist.
+
+**Drift maintenance log.** 2026-09-13 (v1.4.0, remediation cycle 3): `SERVICE_AREAS` corrected to 13 towns (empirically verified against the source site's footer, which also lists 13); `scripts/db.ts` CLI wrapper + shared `db-url.ts` resolver documented (§3.1, §10); dead `/api` route references removed repo-wide; tiered review + security audit (`docs/code-review-audit-2026-09.md`) remediated — security headers (CSP/HSTS/XFO/nosniff/Referrer/Permissions-Policy, `poweredByHeader: false`), 413 payload guard (32KB cap), `cf-connecting-ip`-aware rate limiting, sanitized API error logs, hydration-safe footer year; test counts refreshed via `TZ=UTC npm test` (66/66, 8 files — adds `db-url`, `client-ip`, `payload-limit`) and e2e 31/31.
 
 **Drift check** — run when this doc is >1 sprint stale:
 
 ```bash
 bun pm ls | rg "next@|react@|zod@|vitest@"        # vs §2
-TZ=UTC npm test 2>&1 | rg "Tests"                  # vs "49 tests" claims
+TZ=UTC npm test 2>&1 | rg "Tests"                  # vs "66 tests" claims
 find src/components/wcc -name '*.tsx' | wc -l       # vs §5.3 (16)
 rg -c "amber-|gray-|slate-|blue-" src/ || echo OK   # §19 forbidden-color scan
 rg -n "TODO|FIXME" car-care_SKILL.md | rg -v "must stay 0"   # must stay 0 (self-filtering)

@@ -2,7 +2,7 @@
 
 **Product:** Marketing + booking site for **We Care Car Care**, auto detailing & ceramic coating studio, Framingham MA (MetroWest Boston, since 2010).
 **Repo:** `github.com/nordeim/car-care` · **Stack:** Next.js 16.3.5 App Router (standalone) · React 19.3 · TypeScript 5.9 · Tailwind 4.3 · Prisma 6.19 + SQLite · Zustand · Zod · Vitest + Playwright
-**Status:** v1.3.0 — 49/49 unit × 3 TZ + 29/29 e2e green · lighthouse a11y/bp/seo 1.0 · live https://car-care.jesspete.shop (env-driven SEO)
+**Status:** v1.4.1 — 66/66 unit × 3 TZ + 31/31 e2e green · live E2E + API contracts verified on prod · security headers (CSP/HSTS) + 413 payload guard · lighthouse a11y/bp/seo 1.0 · live https://car-care.jesspete.shop (env-driven SEO)
 **Source of truth:** Business facts in `src/data/wcc/content.ts`; this PRD derives from `docs/prompt-to-create.md` (clone `https://wecarecarcare.com/` from `nordeim/home-financing`) plus the contracts in `AGENTS.md` / `CLAUDE.md` / `README.md` / `car-care_SKILL.md`.
 **Live:** `https://car-care.jesspete.shop` (canonical, env-driven via `NEXT_PUBLIC_SITE_URL`/`SITE_URL`; original ref `https://wecarecarcare.com`)
 **Last updated:** 2026-09-13
@@ -42,7 +42,7 @@ InteriorOnly — $195/$240 single card
 Testimonials (#reviews) — Embla carousel (align:start, loop, md:1/2 xl:1/3, arrows in gutter xl, swipe below), 6 reviews + 5.0 header
 Faq (#faq) — 9 items, Radix accordion single collapsible, card per item, sentence case
 FinalCta — full-bleed detail-action.webp + 5-star pill + 2 buttons + phone link
-SiteFooter — brand, contact, 14 service areas, hours Mon–Sat 8–6, closed Sun
+SiteFooter — brand, contact, 13 service areas, hours Mon–Sat 8–6, closed Sun
 CallFab (fixed z-40 lg:hidden, appears scrollY>400) — tel link
 BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 ```
@@ -93,7 +93,7 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 ### F5 — SEO / A11y / Perf
 
 - **F5.1** Metadata: title/description, `metadataBase` env-driven (`NEXT_PUBLIC_SITE_URL`/`SITE_URL`, fallback `https://car-care.jesspete.shop`; original ref `https://wecarecarcare.com`), OG/Twitter cards referencing `/images/hero-car.webp` (now `https://car-care.jesspete.shop/...` in build).
-- **F5.2** JSON-LD `AutoWash` in `layout.tsx` (name, phone, email, address Framingham, geo, hours, `areaServed` 14 towns, `aggregateRating` 5.0/37) — keep in sync with `content.ts`.
+- **F5.2** JSON-LD `AutoWash` in `layout.tsx` (name, phone, email, address Framingham, geo, hours, `areaServed` 13 towns, `aggregateRating` 5.0/37) — keep in sync with `content.ts`.
 - **F5.3** `src/app/robots.ts` (dynamic, env-driven `sitemap: ${siteUrl}/sitemap.xml`) + `src/app/sitemap.ts` (env-driven) + `icon.svg`; `public/robots.txt` is the static fallback aligned to live `https://car-care.jesspete.shop/sitemap.xml`.
 - **F5.4** A11y: WCAG AA (AAA for main text/accents), axe `critical+serious=0`, `role=slider`/`accordion`/`dialog`, `Label htmlFor`, `role=alert` for errors, icons `aria-hidden` + adjacent text, focus rings amber.
 - **F5.5** Perf: hero `fetchPriority high` + responsive srcset (640w 44KB vs 1024w), lazy below-fold, no Framer Motion, standalone output, `sharp` WebP pipeline.
@@ -105,10 +105,10 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 | Area | Requirement |
 |---|---|
 | **Perf budget** | Lighthouse a11y/bp/seo 1.0, perf ≥0.80; single RSC page, minimal client JS. |
-| **Security** | Zod at boundary, Prisma parameterization, `dangerouslySetInnerHTML` only for static JSON-LD, no secrets in client, `.env` + `db/*.db` gitignored, `bun audit --prod` 0 findings. |
-| **Reliability** | Timezone-safe date logic verified `TZ=UTC` + `America/New_York` + `Asia/Singapore`; server re-validates all client state; in-memory rate limit ephemeral by design (ADR-005). |
-| **Ops** | `bun` canonical; `bun run dev` (:3000 `dev.log`) / `build` (copies `static`+`public` into `.next/standalone/`; standalone `server.js` chdirs to `standalone` — `src/lib/db.ts` cwd-aware resolver) / `start` (bun `server.js` `server.log`); env vars `DATABASE_URL` + `NEXT_PUBLIC_SITE_URL`/`SITE_URL` (live `https://car-care.jesspete.shop`); no Docker/CI yet. |
-| **Testing** | Vitest 49 unit (pricing/slots, dates TZ, schemas, rate-limit, store) + Playwright 29 e2e (smoke, SEO/JSON-LD, funnel with SQLite truth + cleanup, API contracts, axe) on standalone :3100. Gate: `npm test && bun run e2e && bun run lint && bunx tsc --noEmit && bun run build`. |
+| **Security** | Zod at boundary, 32KB payload guard (413) before parse, Prisma parameterization, `dangerouslySetInnerHTML` only for static JSON-LD, app-level security headers (CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy; `poweredByHeader` off), rate-limit keys prefer `cf-connecting-ip`, no secrets in client, `.env` + `db/*.db` gitignored, `bun audit --prod` 0 findings. |
+| **Reliability** | Timezone-safe date logic verified `TZ=UTC` + `America/New_York` + `Asia/Singapore`; server re-validates all client state; in-memory rate limit ephemeral by design (ADR-005); DB path resolution shared + contract-tested (`db-url.ts` + `scripts/db.ts` CLI wrapper) so CLI/dev/standalone/E2E land on one SQLite file even under inherited env drift. |
+| **Ops** | `bun` canonical; `bun run dev` (:3000 `dev.log`) / `build` (copies `static`+`public` into `.next/standalone/`; standalone `server.js` chdirs to `standalone` — DB path re-anchored by shared `db-url.ts`) / `start` (bun `server.js` `server.log`); env vars `DATABASE_URL` + `NEXT_PUBLIC_SITE_URL`/`SITE_URL` (live `https://car-care.jesspete.shop`); no Docker/CI yet. |
+| **Testing** | Vitest 66 unit (pricing/slots, dates TZ, schemas, rate-limit + IP extraction, db-url, payload guard, store) + Playwright 31 e2e (smoke, SEO/JSON-LD, funnel with SQLite truth + cleanup, API contracts incl. 413, axe) on standalone :3100. Gate: `npm test && bun run e2e && bun run lint && bunx tsc --noEmit && bun run build`. |
 
 ---
 
@@ -124,7 +124,7 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 | `interior-only` | Interior Only Detail | $195 | $240 | — | — |
 | **Add-on** | Ceramic shield add-on | +$200 flat (regular $299) | | | only if `allowCeramicAddOn` |
 
-`BOOKABLE_SERVICES` (6) derived from above + `summary` (top-3 features) + `popular` + `group` + `allowCeramicAddOn`. `SERVICE_AREAS` 14 towns feed footer + JSON-LD `areaServed`. `BUSINESS` phone `(508) 290-7476` / `tel:+15082907476` / Framingham MA / Mon–Sat 8:00–18:00.
+`BOOKABLE_SERVICES` (6) derived from above + `summary` (top-3 features) + `popular` + `group` + `allowCeramicAddOn`. `SERVICE_AREAS` 13 towns (verified against the source site's footer) feed footer + JSON-LD `areaServed`. `BUSINESS` phone `(508) 290-7476` / `tel:+15082907476` / Framingham MA / Mon–Sat 8:00–18:00.
 
 ---
 
@@ -132,11 +132,11 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 
 | Endpoint | Method | Body (Zod) | Success | Errors |
 |---|---|---|---|---|
-| `/api/bookings` | POST | `serviceKey, vehicleType, serviceMode, date(YYYY-MM-DD ≤60d), time ∈ TIME_SLOTS, name, phone, email, address?, city?, notes?, addOnCeramic, company?` | `201 {ok:true, confirmation:"WCC-XXXXXX", priceQuote:number}` | `400 Invalid JSON` · `422 {error, issues[]}` (zod/Sun/address/unknown key/window) · `429 rate limit` · `500 call-the-shop` |
+| `/api/bookings` | POST | `serviceKey, vehicleType, serviceMode, date(YYYY-MM-DD ≤60d), time ∈ TIME_SLOTS, name, phone, email, address?, city?, notes?, addOnCeramic, company?` | `201 {ok:true, confirmation:"WCC-XXXXXX", priceQuote:number}` | `400 Invalid JSON` · `413 payload >32KB` · `422 {error, issues[]}` (zod/Sun/address/unknown key/window) · `429 rate limit` · `500 call-the-shop` |
 | `/api/questions` | POST | `name, email, phone?, question(10–2000), company?` | `201 {ok:true}` | same `400/422/429/500` pattern |
 | `company` non-empty on either | — | — | `201 {ok:true, confirmation:"WCC-000000"}` fake, **0 rows** | — (intentional honeypot) |
 
-Pipeline order (load-bearing): parse → zod → honeypot → rate limit → business rules → server price → persist → respond.
+Pipeline order (load-bearing): size guard (413) → parse → zod → honeypot → rate limit (key `cf-connecting-ip` → first XFF hop) → business rules → server price → persist → respond.
 
 ---
 
@@ -164,9 +164,9 @@ Hard fails: (1) hardcoding price/copy in JSX, (2) trusting client price/date, (3
 
 ## 10. Acceptance Criteria (Definition of Done for this PRD)
 
-- [ ] `npm test` 49/49 × 3 TZ · `bun run e2e` 29/29 on standalone :3100 · `bun run lint` clean · `bunx tsc --noEmit` clean (src+e2e) · `bun run build` green with asset copy · `bun audit --prod` 0
+- [ ] `npm test` 66/66 × 3 TZ · `bun run e2e` 31/31 on standalone :3100 · `bun run lint` clean · `bunx tsc --noEmit` clean (src+e2e) · `bun run build` green with asset copy · `bun audit --prod` 0
 - [ ] All 9 sections + 16 wcc components render per §3; dual pricing + image bands present; interactions per F1.8 verified by `agent-browser` + axe
 - [ ] Full booking E2E persists + cleans SQLite truth; all F4.1–F4.7 API contracts pass (400/422/429/honeypot fake-201)
-- [ ] Metadata + JSON-LD + robots/sitemap/icon correct; `metadataBase`/sitemap/robots are env-driven (`NEXT_PUBLIC_SITE_URL`/`SITE_URL` → `https://car-care.jesspete.shop`); `DATABASE_URL` resolves to `db/custom.db` (`file:../db/custom.db` relative to `prisma/`, runtime cwd-aware)
+- [ ] Metadata + JSON-LD + robots/sitemap/icon correct; `metadataBase`/sitemap/robots are env-driven (`NEXT_PUBLIC_SITE_URL`/`SITE_URL` → `https://car-care.jesspete.shop`); `DATABASE_URL` resolves to `db/custom.db` via the shared `db-url.ts` resolver (`.env` value `file:../db/custom.db`; `db:*` scripts run through `scripts/db.ts`, contract-locked by `db-url.test.ts`)
 - [ ] Docs (`AGENTS.md` / `CLAUDE.md` / `README.md` / `car-care_SKILL.md` / `PAD`) claim no drift vs `bun.lock` / `globals.css` / `content.ts`
 

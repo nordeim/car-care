@@ -14,11 +14,11 @@ Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.
 | `bun run dev` | Dev server on :3000, output tee'd to `dev.log` |
 | `bun run build` | Prod build **and** copies `static` + `public` into `.next/standalone/` — the copy step is required for `start` to work. TypeScript errors **fail** this build |
 | `bun run start` | Runs `.next/standalone/server.js` under bun with `NODE_ENV=production`, logs to `server.log` |
-| `npm test` | Vitest — 49 unit tests (`npm run test:watch` for watch mode) |
-| `bun run e2e` | Playwright — 29 e2e tests on the standalone build (:3100; `bun run build` first; `e2e:all`, `e2e:report` variants) |
+| `npm test` | Vitest — 66 unit tests in 8 files (`npm run test:watch` for watch mode) |
+| `bun run e2e` | Playwright — 31 e2e tests on the standalone build (:3100; `bun run build` first; `e2e:all`, `e2e:report` variants) |
 | `bun run lint` | ESLint 9 flat config |
 | `bunx tsc --noEmit` | Typecheck — clean by default now (reference dirs excluded) |
-| `bun run db:push` | Push Prisma schema to SQLite (`--accept-data-loss` is part of the script) |
+| `bun run db:push` | Push Prisma schema to SQLite via the `scripts/db.ts` wrapper (pins the runtime-resolved absolute path so CLI and server share one file; `--accept-data-loss` is part of the script) |
 | `bun run db:generate` | Regenerate Prisma client after schema edits |
 | `bun run db:migrate` / `db:reset` | Prisma migrate dev / reset |
 
@@ -30,11 +30,10 @@ Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.
 - **Booking logic**: `src/lib/wcc/booking.ts` (`findService`, `quoteFor` — ceramic add-on is flat $200, `buildDayOptions` — Sun closed, 6 slots/day).
 - **Date rules**: `src/lib/wcc/dates.ts` — timezone-safe `isSunday` / `isWithinBookingWindow` (weekday derived from the ISO string via UTC, "today" from `America/New_York` via `Intl`). Never use `new Date(iso).getDay()` (host-TZ dependent) for business rules.
 - **Validation schemas**: `src/lib/wcc/schemas.ts` — the zod schemas for bookings + questions. Single source of truth; the API routes import from here. Update tests in `src/lib/wcc/__tests__/schemas.test.ts` when changing fields.
-- **Rate limiting**: `src/lib/wcc/rate-limit.ts` — `SlidingWindowRateLimiter` (5 req / 10 min per IP, prunes stale keys). Shared instances used by both routes.
+- **Rate limiting**: `src/lib/wcc/rate-limit.ts` — `SlidingWindowRateLimiter` (5 req / 10 min per IP, prunes stale keys). Shared instances used by both routes. `clientIpFrom` prefers `cf-connecting-ip` (Cloudflare) then the first `x-forwarded-for` hop (contract-tested in `client-ip.test.ts`).
 - **Dialog state**: zustand store `src/lib/wcc/booking-store.ts` (`useWccDialogs`), **not** React Context. `openBooking(serviceKey?, { addOnCeramic?: boolean })` — the second arg powers the "Smart Add-On" preselect.
-- **APIs**: `src/app/api/{bookings,questions}/route.ts` — POST-only, zod validation → honeypot check → rate limit → business rules (Sunday closed; address required for mobile/pickup) → Prisma insert. Honeypot field is `company`: filled ⇒ fake `201` success, no row written.
-- **DB**: SQLite at `db/custom.db` (**gitignored — never commit customer PII**), `DATABASE_URL` in `.env`. Prisma client is a `globalThis` singleton; `log: ['query']` runs in dev only. `src/lib/db.ts` normalizes `file:../db/custom.db` (relative to `prisma/`) to an absolute repo-root path at runtime to survive the standalone `process.chdir(__dirname)` trap (`.next/standalone/server.js` chdirs to `standalone`); `e2e/helpers/db.ts` mirrors this. Live URL is `https://car-care.jesspete.shop` (env-driven via `NEXT_PUBLIC_SITE_URL`/`SITE_URL`).
-- **Route handler** `src/app/api/route.ts` is template scaffolding (hello world) — unused.
+- **APIs**: `src/app/api/{bookings,questions}/route.ts` — POST-only, payload-size guard (413 >32KB) → zod validation → honeypot check → rate limit (keyed `cf-connecting-ip` → first XFF hop) → business rules (Sunday closed; address required for mobile/pickup) → Prisma insert. Honeypot field is `company`: filled ⇒ fake `201` success, no row written.
+- **DB**: SQLite at `db/custom.db` (**gitignored — never commit customer PII**), `DATABASE_URL` in `.env`. Prisma client is a `globalThis` singleton; `log: ['query']` runs in dev only. `src/lib/wcc/db-url.ts` is the shared, unit-tested resolver (`resolveDatabaseUrl`) used by BOTH `src/lib/db.ts` (runtime) and `scripts/db.ts` (a CLI wrapper that all `db:*` package scripts go through) — it re-anchors any relative `file:*db/custom.db` to an absolute repo-root path so CLI, dev, standalone, and E2E land on one file regardless of inherited env vars (bun auto-loads parent `.env` files; CI shells may export their own `DATABASE_URL`). `e2e/helpers/db.ts` mirrors the runtime resolution. Live URL is `https://car-care.jesspete.shop` (env-driven via `NEXT_PUBLIC_SITE_URL`/`SITE_URL`).
 
 ## Styling
 

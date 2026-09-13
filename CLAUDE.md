@@ -70,9 +70,9 @@ Customer-facing marketing and booking site for **We Care Car Care**, an auto det
 
 ```bash
 bun install
-cp .env.example .env   # DATABASE_URL="file:../db/custom.db" (relative to prisma/) + NEXT_PUBLIC_SITE_URL/SITE_URL="https://car-care.jesspete.shop"
+cp .env.example .env   # DATABASE_URL="file:../db/custom.db" (portable; resolved to absolute by db-url.ts) + NEXT_PUBLIC_SITE_URL/SITE_URL="https://car-care.jesspete.shop"
 bun run db:generate
-bun run db:push         # db.ts normalizes to absolute at runtime for standalone chdir trap
+bun run db:push         # scripts/db.ts wrapper pins the runtime-resolved absolute DB path
 bun run dev             # http://localhost:3000 (live SEO still points to https://car-care.jesspete.shop)
 ```
 
@@ -83,8 +83,8 @@ bun run dev             # http://localhost:3000 (live SEO still points to https:
 | `bun run dev` | Dev server on :3000 (output tee'd to `dev.log`) |
 | `bun run build` | Prod build + copies `static`/`public` into `.next/standalone/` — type errors fail the build |
 | `bun run start` | Serve standalone build with bun (`server.log`) |
-| `npm test` | Vitest unit suite (49 tests) |
-| `bun run e2e` | Playwright e2e suite (29 tests) on the standalone build — `bun run build` first; suite manages its own server on :3100 (`e2e:all`, `e2e:report`) |
+| `npm test` | Vitest unit suite (66 tests) |
+| `bun run e2e` | Playwright e2e suite (31 tests) on the standalone build — `bun run build` first; suite manages its own server on :3100 (`e2e:all`, `e2e:report`) |
 | `bun run lint` | ESLint 9 (flat config) |
 | `bunx tsc --noEmit` | Type check — mandatory |
 | `bun run db:push` | Apply `prisma/schema.prisma` to SQLite (accepts data loss) |
@@ -92,14 +92,14 @@ bun run dev             # http://localhost:3000 (live SEO still points to https:
 
 ### Database (Prisma + SQLite)
 
-- Models: `Booking`, `Question` (`prisma/schema.prisma`). Client singleton in `src/lib/db.ts` (query logging dev-only, **cwd-aware** absolute resolver for standalone — `file:../db/custom.db` is portable for `db:push` but runtime resolves to repo-root absolute whether cwd is repo root or `.next/standalone`; `e2e/helpers/db.ts` mirrors this).
+- Models: `Booking`, `Question` (`prisma/schema.prisma`). Client singleton in `src/lib/db.ts` (query logging dev-only, **shared resolver** for standalone — `src/lib/wcc/db-url.ts` is the unit-tested `resolveDatabaseUrl` used by BOTH the runtime and the `scripts/db.ts` CLI wrapper that backs every `db:*` script; `file:../db/custom.db` is portable for `.env` and all consumers land on repo-root `db/custom.db`; `e2e/helpers/db.ts` mirrors the resolution).
 - Inspect data with `bunx prisma studio`. `db/custom.db` is a **runtime artifact, gitignored** — never commit it (customer PII).
 
 ## Testing Strategy
 
-**Vitest unit suite** in `src/lib/wcc/__tests__/` (`npm test`, 49 tests): pricing/quote logic, day-slot generation, **timezone-safe date rules** (verify under multiple `TZ`), zod schemas (accept/reject matrix), the shared rate limiter, and the dialog store. Use TDD for logic changes: write the failing test first (`RED`), implement (`GREEN`), refactor with the suite green.
+**Vitest unit suite** in `src/lib/wcc/__tests__/` (`npm test`, 66 tests): pricing/quote logic, day-slot generation, **timezone-safe date rules** (verify under multiple `TZ`), zod schemas (accept/reject matrix), the shared rate limiter + IP extraction, the DATABASE_URL resolver contract (`db-url.test.ts`), the payload-size guard, and the dialog store. Use TDD for logic changes: write the failing test first (`RED`), implement (`GREEN`), refactor with the suite green.
 
-**Playwright e2e suite** in `e2e/` (`bun run e2e`, 29 tests) — adapted from `nordeim/home-financing`: runs the standalone production server (never `next dev`), asserts booking-funnel server truth in SQLite with test-row cleanup, API contracts (400/422/429/honeypot/201) with unique `x-forwarded-for` per test, SEO/JSON-LD, smoke (sections, dual pricing, sliders, lazy images, mobile FAB), and axe-core a11y gates (critical + serious must be zero). Specs are included in `tsc` typechecking. Setup uses `cp .env.example .env`.
+**Playwright e2e suite** in `e2e/` (`bun run e2e`, 31 tests) — adapted from `nordeim/home-financing`: runs the standalone production server (never `next dev`), asserts booking-funnel server truth in SQLite with test-row cleanup, API contracts (400/413/422/429/honeypot/201) with unique `x-forwarded-for` per test, SEO/JSON-LD, smoke (sections, dual pricing, sliders, lazy images, mobile FAB), and axe-core a11y gates (critical + serious must be zero). Specs are included in `tsc` typechecking. Setup uses `cp .env.example .env`.
 
 Before delivering changes:
 
@@ -122,7 +122,7 @@ Expect `201` + `confirmation`; expect `422` for Sunday dates, missing address on
 
 - ESLint flat config (`eslint.config.mjs`) extends `next/core-web-vitals` + `next/typescript`; many rules deliberately off (sandbox template). `foundation/**`, `scripts/**`, `examples/**`, `skills` are ignored.
 - Keep the `content.ts` typing style: `satisfies` / `as const` for literal data.
-- Error paths in APIs return `{ error: string }` JSON with proper status (`400`/`422`/`429`/`500`); user-facing fallback text always includes the shop phone number.
+- Error paths in APIs return `{ error: string }` JSON with proper status (`400`/`413`/`422`/`429`/`500`); user-facing fallback text always includes the shop phone number.
 
 ## Git & Version Control
 
@@ -161,9 +161,8 @@ GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25
 
 | Endpoint | Method | Auth | Notes |
 |----------|--------|------|-------|
-| `/api/bookings` | POST | none | zod → honeypot → rate limit → rules → persist; returns `{ok, confirmation, priceQuote}` |
-| `/api/questions` | POST | none | zod → honeypot → rate limit → persist; returns `{ok}` |
-| `/api` | GET | none | template hello-world, unused |
+| `/api/bookings` | POST | none | 413 guard → zod → honeypot → rate limit → rules → persist; returns `{ok, confirmation, priceQuote}` |
+| `/api/questions` | POST | none | 413 guard → zod → honeypot → rate limit → persist; returns `{ok}` |
 
 Server-computed rules (do not trust the client): Sunday closure (**timezone-safe** — weekday derived from the ISO date, "today" from `America/New_York`; see `src/lib/wcc/dates.ts`), address required for `mobile`/`pickup`, service key must exist, date within next 60 days, price quote recomputed server-side via `quoteFor`.
 

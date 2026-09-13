@@ -22,11 +22,11 @@ A single-page site built to convert local search traffic into detail appointment
 | 🔀 Drag-compare before/after | Pointer-driven slider; the "before" half is the same photo behind a dirty-vision CSS filter |
 | 💰 Dual pricing | Every package card shows sedan + SUV prices side by side (no toggle to hunt for); the booking dialog keeps its own vehicle selector |
 | 📅 4-step booking dialog | Service (with per-service summaries + Most Popular badge) → date/time → contact → confirm, with server-quoted price and `WCC-XXXXXX` confirmation code |
-| 🛡️ API hardening | Zod validation (schemas shared client/server), honeypot bot trap (fake success), sliding-window IP rate limit (5 req / 10 min) — timezone-safe Sunday/window rules |
+| 🛡️ API hardening | Payload-size guard (413 >32KB), Zod validation (schemas shared client/server), honeypot bot trap (fake success), sliding-window IP rate limit (5 req / 10 min; `cf-connecting-ip`-aware) — timezone-safe Sunday/window rules; security headers (CSP, HSTS, X-Frame-Options, nosniff, Referrer/Permissions-Policy) set app-side |
 | 🗄️ Lead persistence | Booking + Question models in SQLite via Prisma; reviewable in Prisma Studio |
 | ✨ Motion with respect | IntersectionObserver scroll reveals, CTA shine sweep — all disabled under `prefers-reduced-motion` |
 | 📱 Mobile call FAB | Floating call button appears after scrolling past the hero (mobile only) |
-| 🧪 Tests | Vitest (49 unit tests: pricing/date logic, validation schemas, rate limiter, dialog store) + Playwright (29 e2e tests: smoke, SEO, booking funnel with DB truth, API contracts, axe a11y) against the standalone production build |
+| 🧪 Tests | Vitest (66 unit tests: pricing/date logic, validation schemas, rate limiter + IP extraction, DB-URL resolver contract, payload guard, dialog store) + Playwright (31 e2e tests: smoke, SEO, booking funnel with DB truth, API contracts incl. 413, axe a11y) against the standalone production build |
 | 🔍 Local SEO | Full metadata, OG/Twitter cards, JSON-LD `AutoWash` schema (address, geo, hours, service areas, rating), `sitemap.xml`, app icon |
 
 ## Architecture
@@ -54,7 +54,7 @@ flowchart TB
     N --> P["/ — RSC page<br/>9 sections + 2 dialogs (metadataBase = SITE_URL)"]
     N --> A1["POST /api/bookings<br/>zod → honeypot → rate limit → rules"]
     N --> A2["POST /api/questions<br/>zod → honeypot → rate limit"]
-    A1 --> D[("SQLite — db/custom.db<br/>Booking / Question (absolute via db.ts)")]
+    A1 --> D[("SQLite — db/custom.db<br/>Booking / Question (shared db-url.ts resolver)")]
     A2 --> D
 ```
 
@@ -65,8 +65,7 @@ flowchart TB
  ┣ 📂 app
  ┃ ┣ 📂 api
  ┃ ┃ ┣ 📂 bookings ─ 📄 route.ts — POST booking (zod, honeypot, rate limit, rules)
- ┃ ┃ ┣ 📂 questions ─ 📄 route.ts — POST inquiry
- ┃ ┃ ┣ 📄 route.ts — template hello-world (unused)
+ ┃ ┃ ┗ 📂 questions ─ 📄 route.ts — POST inquiry
  ┃ ┣ 📄 layout.tsx — fonts, metadataBase (env-driven), JSON-LD, Toaster
  ┃ ┣ 📄 sitemap.ts — env-driven sitemap (SITE_URL)
  ┃ ┣ 📄 robots.ts — dynamic robots (env-driven sitemap URL) + public/robots.txt static fallback
@@ -78,13 +77,13 @@ flowchart TB
  ┣ 📂 data/wcc — 📄 content.ts — ALL services, prices, areas, FAQs, business facts
  ┗ 📂 lib
     ┣ 📂 wcc — booking.ts (pricing/slots) · booking-store.ts (zustand) · schemas.ts (zod)
-    ┣        rate-limit.ts · dates.ts (timezone-safe rules) · __tests__/ (vitest)
-    ┣ 📄 db.ts — Prisma singleton (query logging dev-only, cwd-aware absolute resolver for standalone)
+    ┣        rate-limit.ts · dates.ts (timezone-safe rules) · db-url.ts (shared DB-URL resolver) · __tests__/ (vitest)
+    ┣ 📄 db.ts — Prisma singleton (query logging dev-only; uses db-url.ts)
     ┗ 📄 utils.ts — cn()
 📂 prisma — 📄 schema.prisma — Booking, Question models
 📂 db — runtime SQLite (gitignored; created by db:push)
 📂 public — logo.svg, robots.txt, 📂 images (6 generated WebP assets)
-📂 scripts — image generation / optimization / visual-check helpers
+📂 scripts — db.ts (Prisma CLI wrapper — pins resolved DB path) · image generation / optimization / visual-check helpers
 📂 docs — project prompt, skill docs, SSH git wrapper, audit + remediation plan
 ```
 
@@ -111,12 +110,12 @@ bun run dev            # http://localhost:3000 (metadataBase still live URL)
 1. Open `http://localhost:3000` — the We Care Car Care landing page renders with the hero image and pricing sections.
 2. Click any **Book Now** CTA, walk all 4 steps, submit — you get a `WCC-XXXXXX` confirmation.
 3. `bunx prisma studio` → your row is in the `Booking` table.
-4. `bun run lint` exits clean; `npm test` passes (49 tests); `bun run e2e` passes (29 tests — needs `bun run build` first).
+4. `bun run lint` exits clean; `npm test` passes (66 tests); `bun run e2e` passes (31 tests — needs `bun run build` first).
 
 ### Tests
 
 ```bash
-npm test            # vitest run — 49 unit tests
+npm test            # vitest run — 66 unit tests
 npm run test:watch  # watch mode
 
 # Playwright E2E — runs the standalone production build on :3100.
@@ -129,7 +128,7 @@ bun run e2e:report  # open the HTML report (playwright-report/)
 
 The unit suite covers pricing/quote logic, day-slot generation, timezone-safe Sunday/window rules, zod schemas, the shared rate limiter, and the dialog store. It is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore`.
 
-The e2e suite (adapted from `nordeim/home-financing`) drives the real standalone server — never `next dev` — and asserts server truth (SQLite rows) for the booking funnel, plus full API contracts (400/422/429/honeypot/201) and axe-core accessibility gates (critical + serious).
+The e2e suite (adapted from `nordeim/home-financing`) drives the real standalone server — never `next dev` — and asserts server truth (SQLite rows) for the booking funnel, plus full API contracts (400/413/422/429/honeypot/201) and axe-core accessibility gates (critical + serious).
 
 ### Production build
 
@@ -142,7 +141,7 @@ bun run start    # serves .next/standalone/server.js on :3000
 
 | Variable | Required | Purpose | Default |
 |----------|----------|---------|---------|
-| `DATABASE_URL` | Yes | SQLite URL for Prisma (relative to `prisma/`; runtime normalized to absolute for standalone `chdir` trap) | — (`file:../db/custom.db` recommended) |
+| `DATABASE_URL` | Yes | SQLite URL for Prisma — relative values pointing at `db/custom.db` are re-anchored to an absolute repo-root path by the shared `src/lib/wcc/db-url.ts` resolver (runtime) and `scripts/db.ts` (CLI wrapper), so CLI/dev/standalone/E2E all share one file | — (`file:../db/custom.db` recommended) |
 | `NEXT_PUBLIC_SITE_URL` | Yes (SEO) | Canonical site URL for `metadataBase`/OG/`sitemap`/`robots` | `https://car-care.jesspete.shop` (live) |
 | `SITE_URL` | No (fallback) | Server fallback for sitemap/robots when `NEXT_PUBLIC_` not set | `https://car-care.jesspete.shop` |
 
@@ -178,8 +177,9 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 | Verification (lint, typecheck, E2E booking, API contract, mobile 375px) | ✅ Done | Booking E2E persisted + cleaned; honeypot returns fake success |
 | Audit + remediation (visual parity, security, tests) | ✅ Done | See `docs/audit-and-remediation-2026-09.md` — Next 16.3.5, dep pruning, dual pricing, teal accent system, toast fix, FAB |
 | Audit + remediation cycle 2 (E2E suite, a11y, perf) | ✅ Done | See `docs/audit-e2e-2026-09.md` — Playwright 29 e2e, lighthouse a11y/bp/seo 1.0, responsive hero, `.env.example`, dead-route removal |
+| Remediation cycle 3 (validation + live E2E + audit hardening) | ✅ Done | Shared unit-tested DB-URL resolver (`db-url.ts`) + `scripts/db.ts` CLI wrapper (kills env-drift DB mismatch), doc truthfulness pass (dead `/api` refs, 13 service areas, package identity); tiered review + security audit → `docs/code-review-audit-2026-09.md`: security headers + CSP, `poweredByHeader:false`, 413 payload guard, `cf-connecting-ip`-aware rate limiting, sanitized API error logs, hydration-safe footer year — 66 unit + 31 e2e green |
 | PRD + validation report (standalone DB trap fix, live URL) | ✅ Done | See `PRD.md` + `docs/validation-report-PRD.md` — `file:../db/custom.db` cwd-aware resolver, live `https://car-care.jesspete.shop` env-driven SEO (`layout`/`sitemap`/`robots.ts`), lint `set-state-in-effect` off |
-| Automated test suite | ✅ Done | Vitest 49 unit (lib/schemas/store) + Playwright 29 e2e (smoke/SEO/funnel/API/a11y) |
+| Automated test suite | ✅ Done | Vitest 66 unit (lib/schemas/store/db-url/client-ip/payload) + Playwright 31 e2e (smoke/SEO/funnel/API/a11y) |
 | Admin surface for leads | ❌ Not started | Owner reviews leads via Prisma Studio |
 
 ## Troubleshooting
@@ -190,7 +190,8 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 | Type errors don't fail the build | Fixed — `ignoreBuildErrors` is now `false`; `bunx tsc --noEmit` and `bun run build` both enforce types |
 | 429 while testing the booking API | In-memory rate limit (5 req / 10 min per IP) — restart the dev server to reset |
 | `@prisma/client did not initialize` | Run `bun run db:generate` after cloning or editing the schema |
-| Prisma writes to `standalone/db/custom.db` | Standalone `server.js` does `process.chdir(__dirname)` — fixed in `src/lib/db.ts` (cwd-aware absolute resolver for any `file:*db/custom.db`); keep `.env` as `file:../db/custom.db` |
+| Prisma writes to `standalone/db/custom.db` | Standalone `server.js` does `process.chdir(__dirname)` — fixed by the shared resolver `src/lib/wcc/db-url.ts` (cwd-aware absolute re-anchor for any `file:*db/custom.db`); keep `.env` as `file:../db/custom.db` |
+| `db:push` creates the DB outside the repo (or ignores `.env`) | A `DATABASE_URL` exported by a parent shell/CI env (or a parent-directory `.env`, which bun auto-loads) silently overrides the repo value — all `db:*` scripts go through `scripts/db.ts`, which pins the runtime-resolved absolute path; run `bun run db:push` (not bare `prisma db push`) |
 | Live OG/sitemap shows wrong domain | Set `NEXT_PUBLIC_SITE_URL`/`SITE_URL` in `.env` (canonical `https://car-care.jesspete.shop`) — `layout.tsx`/`sitemap.ts`/`robots.ts` all read it |
 | Sunday date rejected | Intentional: the shop is closed Sundays (both UI and API enforce it) |
 
