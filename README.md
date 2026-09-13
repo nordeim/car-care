@@ -7,6 +7,7 @@
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?style=flat-square&logo=prisma&logoColor=white)
 ![SQLite](https://img.shields.io/badge/DB-SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![bun](https://img.shields.io/badge/runtime-bun_1.3-000?style=flat-square)
+[![verify-gate](https://github.com/nordeim/car-care/actions/workflows/verify-gate.yml/badge.svg)](https://github.com/nordeim/car-care/actions/workflows/verify-gate.yml)
 
 Marketing and booking site for **We Care Car Care** — an eco-friendly auto detailing and ceramic coating studio in Framingham, MA serving MetroWest Boston since 2010.
 
@@ -130,6 +131,8 @@ The unit suite covers pricing/quote logic, day-slot generation, timezone-safe Su
 
 The e2e suite (adapted from `nordeim/home-financing`) drives the real standalone server — never `next dev` — and asserts server truth (SQLite rows) for the booking funnel, plus full API contracts (400/413/422/429/honeypot/201) and axe-core accessibility gates (critical + serious).
 
+**CI**: [`.github/workflows/verify-gate.yml`](.github/workflows/verify-gate.yml) runs the full documented gate on **every push** — frozen `bun install` → `.env` from `.env.example` + `db:generate`/`db:push` → unit tests ×3 TZ → `tsc` → `lint` → standalone `build` → `e2e` (chromium) → `scripts/skill-verify.sh` (11 checks). No secrets required; the Playwright report is uploaded as an artifact on failure.
+
 ### Production build
 
 ```bash
@@ -181,6 +184,7 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 | Remediation cycle 4 (git invariants + docs truth + audit round 2) | ✅ Done | See `docs/code-review-audit-2026-09-cycle4.md` — `.env`/`db/custom.db` re-tracked by `34a172d` → untracked + regression guard (`skill-verify.sh` check 9); SKILL/PAD/PRD/AGENTS/CLAUDE drift corrected (stale test counts, TZ-unsafe PAD sample, migrations story, SSH path, 8 WebP assets); `bun.lock` identity fixed; content-as-data violations fixed in dialogs (`CERAMIC_ADDON`/`BUSINESS.phone` interpolation) + check-10 guard — 66 unit + 31 e2e green × 3 TZ |
 | PRD + validation report (standalone DB trap fix, live URL) | ✅ Done | See `PRD.md` + `docs/validation-report-PRD.md` — `file:../db/custom.db` cwd-aware resolver, live `https://car-care.jesspete.shop` env-driven SEO (`layout`/`sitemap`/`robots.ts`), lint `set-state-in-effect` off |
 | Automated test suite | ✅ Done | Vitest 66 unit (lib/schemas/store/db-url/client-ip/payload) + Playwright 31 e2e (smoke/SEO/funnel/API/a11y) |
+| CI gate (GitHub Actions) | ✅ Done | `.github/workflows/verify-gate.yml` — the documented gate on **every push**: unit ×3 TZ, `tsc`, `lint`, standalone `build`, `e2e` (chromium), `skill-verify.sh` (11 checks); coverage pinned by check 11; no secrets |
 | Admin surface for leads | ❌ Not started | Owner reviews leads via Prisma Studio |
 
 ## Troubleshooting
@@ -199,7 +203,7 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 ## Contributing
 
 - Keep all business facts in `src/data/wcc/content.ts` — components and API both derive from it. Site URL is env-driven (`NEXT_PUBLIC_SITE_URL`/`SITE_URL`, fallback live `https://car-care.jesspete.shop`); original ref `https://wecarecarcare.com` is now only a fallback.
-- Before every commit: `npm test` && `bun run e2e` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
+- Before every commit: `npm test` && `bun run e2e` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`. CI ([`.github/workflows/verify-gate.yml`](.github/workflows/verify-gate.yml)) re-runs the full gate on every push.
 - Keep `db/` untracked (PII). `bun run db:push` recreates `db/custom.db` locally after cloning.
 - Conventional Commits on `main`; keep commits atomic.
 - Canonical requirements: **`PRD.md`** (F1–F5, pricing, API contracts, DoD). Deep engineering reference: **`car-care_SKILL.md`** + **`docs/validation-report-PRD.md`** (traceability matrix).

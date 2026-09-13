@@ -10,9 +10,9 @@ description: >
   booking dialog, and the test pyramid that locks it all down: 66 Vitest
   unit tests (timezone-verified) plus a 31-test Playwright e2e suite that
   drives the standalone production build.
-version: 1.4.2
-last_updated: 2026-09-13
-project_state: 66/66 unit tests green (UTC + America/New_York + Asia/Singapore) · 31/31 e2e green (standalone build) · live E2E + API contracts verified on prod · security headers (CSP/HSTS/XFO/nosniff) + poweredByHeader off · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · shared db-url.ts resolver + scripts/db.ts CLI wrapper · git invariants + content-as-data guarded by scripts/skill-verify.sh (10 checks, repo-relative) · cycle-4 audit PASS (docs/code-review-audit-2026-09-cycle4.md) · verified 2026-09-13
+version: 1.4.3
+last_updated: 2026-09-14
+project_state: 66/66 unit tests green (UTC + America/New_York + Asia/Singapore) · 31/31 e2e green (standalone build) · live E2E + API contracts verified on prod · security headers (CSP/HSTS/XFO/nosniff) + poweredByHeader off · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · shared db-url.ts resolver + scripts/db.ts CLI wrapper · git invariants + content-as-data + CI coverage guarded by scripts/skill-verify.sh (11 checks, repo-relative) · CI runs the documented gate on every push (.github/workflows/verify-gate.yml) · cycle-4 audit PASS (docs/code-review-audit-2026-09-cycle4.md) · verified 2026-09-14
 tags:
   - nextjs16
   - react19
@@ -533,6 +533,8 @@ bun run build                 # standalone build + asset copy; type errors fail 
 bun run e2e                   # 31/31 on the standalone build (funnel + DB truth, API contracts, SEO, axe a11y)
 ```
 
+CI runs this exact gate on **every push** — `.github/workflows/verify-gate.yml` (GitHub Actions, ubuntu-latest, bun pinned to the lockfile generator version; provisions `.env` from `.env.example` and the SQLite schema via `db:generate` + `db:push` since the runner starts with no DB; runs the unit suite under all three timezones; uploads the Playwright report as an artifact on failure). No secrets are involved. `scripts/skill-verify.sh` check 11 fails the local gate if the workflow is deleted, filtered to specific refs, or drops any documented gate command — keep the workflow and this checklist in sync.
+
 ### 11.2 Runtime smoke (agent-browser or manual)
 
 1. `/` returns 200; hero + all 9 sections render; console error-free.
@@ -1030,6 +1032,8 @@ What this catches that `tsc`/`vitest`/`build` cannot: toast renderers that were 
 2026-09-13 (v1.4.1, remediation cycle 4): git-invariant regression fixed — commit 34a172d had re-tracked `.env` + `db/custom.db` (both untracked again; `scripts/skill-verify.sh` check 9 now guards this); frontmatter/§5.1/§2 test counts aligned to 66/8/31-5-specs (frontmatter still said 57/29, §5.1 said 49, §2 said 7 spec files); §15.1 canonical route pattern now includes the 413 payload guard as step 0; §17 `md` claim scoped to wcc components; §19 white/black usage completed (hero h1, slider handle); ADR-002/§2 ORM row updated for the init migration; `bun.lock` workspace name fixed (`nextjs_tailwind_shadcn_ts` → `car-care`); `globals.css` teal contrast comment corrected to 13.3:1.
 
 2026-09-13 (v1.4.2, cycle 4 audit + hardening): tiered review + security audit round 2 (`docs/code-review-audit-2026-09-cycle4.md`) — verdict PASS, 2 LOW findings both fixed the same cycle: booking-dialog now interpolates `CERAMIC_ADDON.price`/`regularPrice` (was `usd(200)`/`usd(299)`/`"(+$200)"` literals) and both dialogs interpolate `BUSINESS.phone` in network-error strings; §19's "two greps that enforce this during review" are now executable as `scripts/skill-verify.sh` **check 10** (content-as-data: no hardcoded prices or shop phone in `src/components/` — RED→GREEN TDD cycle: 5 hits → 0). Verify script is now repo-relative (was hardcoded `/home/z/my-project`) with 10 checks total.
+
+2026-09-14 (v1.4.3, CI gate): GitHub Actions workflow `.github/workflows/verify-gate.yml` added — the documented verification gate now runs on **every push** (any ref, no branch filter) plus manual dispatch: frozen `bun install` → `.env` from `.env.example` + `db:generate`/`db:push` provisioning (runner has no DB — gitignored by design) → unit tests ×3 TZ (UTC / America/New_York / Asia/Singapore) → `tsc --noEmit` → lint → standalone build → e2e (chromium, standalone server on :3100) → `scripts/skill-verify.sh`; no secrets; Playwright report artifact on failure; bun pinned to 1.3.14 (the lockfile generator — keeps `bun pm ls` output format stable for check 1). New **check 11** (RED→GREEN TDD: missing-file failure → full-coverage pass) pins the workflow's existence, filterless push trigger, and coverage of every documented gate command; check 4 now existence-verifies `.github/…` paths referenced in this file. AGENTS/README (badge + status row + contributing)/PRD (Ops row "no Docker/CI yet" corrected; 11 checks) aligned.
 
 **Drift check** — run when this doc is >1 sprint stale:
 

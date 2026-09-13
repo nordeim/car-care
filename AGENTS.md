@@ -24,6 +24,8 @@ Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.
 
 **Verification gate before every commit**: `npm test` && `bun run e2e` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
 
+**CI**: GitHub Actions runs the same gate on **every push** (any ref) — `.github/workflows/verify-gate.yml`: `bun install --frozen-lockfile` → provision (`.env` from `.env.example`, `db:generate`, `db:push` — the runner starts with no DB) → unit tests under `TZ=UTC` / `America/New_York` / `Asia/Singapore` → `tsc` → `lint` → `build` → `e2e` → `scripts/skill-verify.sh`. No secrets needed. `skill-verify.sh` check 11 fails the gate if the workflow is deleted, filtered to specific refs, or drops any documented gate command — edit the workflow and the documented gate together.
+
 ## Architecture
 
 - **Content lives in one file**: `src/data/wcc/content.ts` — all services, prices, service areas, business facts, FAQs, testimonials. Change pricing/copy there, never in components. `BOOKABLE_SERVICES` is derived from `PACKAGES` / `CERAMIC_TIERS` / `INTERIOR_ONLY` (now with one-line `summary` + `popular` flags) — don't hand-edit it.
@@ -81,6 +83,8 @@ Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production b
   bun run lint      # 0 
   bun run build     # Route (app) ○ /, ƒ /api/bookings, ƒ /api/questions, ○ /icon.svg, ○ /sitemap.xml, ○ /robots.txt 
   bun run e2e       # 31/31 using 1 worker — includes 413 payload contracts on both routes
-  bash scripts/skill-verify.sh  # ALL CHECKS PASSED (incl. git-invariant check 9: no tracked .env/.db)
+  bash scripts/skill-verify.sh  # ALL CHECKS PASSED (11 checks incl. git-invariant check 9 + CI-coverage check 11)
 ```
+
+CI runs this exact gate on every push → `.github/workflows/verify-gate.yml` (badge in `README.md`; no secrets — SQLite + `.env.example` keep the repo self-contained; Playwright report is uploaded as an artifact on failure).
 

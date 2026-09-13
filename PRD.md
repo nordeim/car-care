@@ -2,10 +2,10 @@
 
 **Product:** Marketing + booking site for **We Care Car Care**, auto detailing & ceramic coating studio, Framingham MA (MetroWest Boston, since 2010).
 **Repo:** `github.com/nordeim/car-care` · **Stack:** Next.js 16.3.5 App Router (standalone) · React 19.3 · TypeScript 5.9 · Tailwind 4.3 · Prisma 6.19 + SQLite · Zustand · Zod · Vitest + Playwright
-**Status:** v1.5.0 — 66/66 unit × 3 TZ + 31/31 e2e green · live E2E + API contracts verified on prod · security headers (CSP/HSTS) + 413 payload guard · lighthouse a11y/bp/seo 1.0 · live https://car-care.jesspete.shop (env-driven SEO) · git invariants + content-as-data guarded by `scripts/skill-verify.sh` (10 checks) · cycle-4 audit: PASS, 0 open findings (`docs/code-review-audit-2026-09-cycle4.md`)
+**Status:** v1.5.1 — 66/66 unit × 3 TZ + 31/31 e2e green · live E2E + API contracts verified on prod · security headers (CSP/HSTS) + 413 payload guard · lighthouse a11y/bp/seo 1.0 · live https://car-care.jesspete.shop (env-driven SEO) · git invariants + content-as-data + CI coverage guarded by `scripts/skill-verify.sh` (11 checks) · CI: documented gate runs on every push (`.github/workflows/verify-gate.yml`) · cycle-4 audit: PASS, 0 open findings (`docs/code-review-audit-2026-09-cycle4.md`)
 **Source of truth:** Business facts in `src/data/wcc/content.ts`; this PRD derives from `docs/prompt-to-create.md` (clone `https://wecarecarcare.com/` from `nordeim/home-financing`) plus the contracts in `AGENTS.md` / `CLAUDE.md` / `README.md` / `car-care_SKILL.md`.
 **Live:** `https://car-care.jesspete.shop` (canonical, env-driven via `NEXT_PUBLIC_SITE_URL`/`SITE_URL`; original ref `https://wecarecarcare.com`)
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-14
 
 ---
 
@@ -107,8 +107,8 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 | **Perf budget** | Lighthouse a11y/bp/seo 1.0, perf ≥0.80; single RSC page, minimal client JS. |
 | **Security** | Zod at boundary, 32KB payload guard (413) before parse, Prisma parameterization, `dangerouslySetInnerHTML` only for static JSON-LD, app-level security headers (CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy; `poweredByHeader` off), rate-limit keys prefer `cf-connecting-ip`, no secrets in client, `.env` + `db/*.db` gitignored, `bun audit --prod` 0 findings. |
 | **Reliability** | Timezone-safe date logic verified `TZ=UTC` + `America/New_York` + `Asia/Singapore`; server re-validates all client state; in-memory rate limit ephemeral by design (ADR-005); DB path resolution shared + contract-tested (`db-url.ts` + `scripts/db.ts` CLI wrapper) so CLI/dev/standalone/E2E land on one SQLite file even under inherited env drift. |
-| **Ops** | `bun` canonical; `bun run dev` (:3000 `dev.log`) / `build` (copies `static`+`public` into `.next/standalone/`; standalone `server.js` chdirs to `standalone` — DB path re-anchored by shared `db-url.ts`) / `start` (bun `server.js` `server.log`); env vars `DATABASE_URL` + `NEXT_PUBLIC_SITE_URL`/`SITE_URL` (live `https://car-care.jesspete.shop`); no Docker/CI yet. |
-| **Testing** | Vitest 66 unit (pricing/slots, dates TZ, schemas, rate-limit + IP extraction, db-url, payload guard, store) + Playwright 31 e2e (smoke, SEO/JSON-LD, funnel with SQLite truth + cleanup, API contracts incl. 413, axe) on standalone :3100. Gate: `npm test && bun run e2e && bun run lint && bunx tsc --noEmit && bun run build`. |
+| **Ops** | `bun` canonical; `bun run dev` (:3000 `dev.log`) / `build` (copies `static`+`public` into `.next/standalone/`; standalone `server.js` chdirs to `standalone` — DB path re-anchored by shared `db-url.ts`) / `start` (bun `server.js` `server.log`); env vars `DATABASE_URL` + `NEXT_PUBLIC_SITE_URL`/`SITE_URL` (live `https://car-care.jesspete.shop`); no Docker; CI: GitHub Actions runs the documented gate on **every push** (`.github/workflows/verify-gate.yml` — unit ×3 TZ, tsc, lint, build, e2e, skill-verify; no secrets; coverage pinned by skill-verify check 11). |
+| **Testing** | Vitest 66 unit (pricing/slots, dates TZ, schemas, rate-limit + IP extraction, db-url, payload guard, store) + Playwright 31 e2e (smoke, SEO/JSON-LD, funnel with SQLite truth + cleanup, API contracts incl. 413, axe) on standalone :3100. Gate: `npm test && bun run e2e && bun run lint && bunx tsc --noEmit && bun run build` — the same gate runs in CI on every push (`.github/workflows/verify-gate.yml`). |
 
 ---
 
@@ -165,6 +165,7 @@ Hard fails: (1) hardcoding price/copy in JSX, (2) trusting client price/date, (3
 ## 10. Acceptance Criteria (Definition of Done for this PRD)
 
 - [ ] `npm test` 66/66 × 3 TZ · `bun run e2e` 31/31 on standalone :3100 · `bun run lint` clean · `bunx tsc --noEmit` clean (src+e2e) · `bun run build` green with asset copy · `bun audit --prod` 0
+- [ ] CI: `.github/workflows/verify-gate.yml` runs the full documented gate on every push — Actions run green on the pushed commit (no secrets; SQLite provisioned from `.env.example` via `db:generate` + `db:push`)
 - [ ] All 9 sections + 16 wcc components render per §3; dual pricing + image bands present; interactions per F1.8 verified by `agent-browser` + axe
 - [ ] Full booking E2E persists + cleans SQLite truth; all F4.1–F4.7 API contracts pass (400/422/429/honeypot fake-201)
 - [ ] Metadata + JSON-LD + robots/sitemap/icon correct; `metadataBase`/sitemap/robots are env-driven (`NEXT_PUBLIC_SITE_URL`/`SITE_URL` → `https://car-care.jesspete.shop`); `DATABASE_URL` resolves to `db/custom.db` via the shared `db-url.ts` resolver (`.env` value `file:../db/custom.db`; `db:*` scripts run through `scripts/db.ts`, contract-locked by `db-url.test.ts`)

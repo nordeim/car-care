@@ -110,6 +110,8 @@ bunx tsc --noEmit        # type clean
 bun run build            # standalone build succeeds (types enforced)
 ```
 
+CI runs the documented gate on **every push** — `.github/workflows/verify-gate.yml` (unit ×3 TZ, tsc, lint, build, e2e, `scripts/skill-verify.sh`; no secrets). `skill-verify.sh` check 11 fails if the workflow drifts from the documented gate.
+
 Then manual E2E: open `/`, run the booking dialog end-to-end (service → date/time → contact → confirm), expect a `WCC-XXXXXX` confirmation and a row in `db.booking`. API-level checks:
 
 ```bash
