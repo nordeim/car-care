@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 
 /**
@@ -16,6 +17,15 @@ if (!process.env.DATABASE_URL) {
     throw new Error("e2e/db: DATABASE_URL is not set and .env has no DATABASE_URL line");
   }
   process.env.DATABASE_URL = match[1].trim();
+}
+
+// Mirror src/lib/db.ts: normalize relative SQLite URLs so the E2E worker
+// (cwd = repo root) and the standalone server resolve to the same absolute file.
+if (process.env.DATABASE_URL?.startsWith("file:")) {
+  const filePart = process.env.DATABASE_URL.slice(5);
+  if (!path.isAbsolute(filePart) && filePart.includes("db/custom.db")) {
+    process.env.DATABASE_URL = `file:${path.resolve(process.cwd(), "db/custom.db")}`;
+  }
 }
 
 /** Marker used by every row a spec creates — teardown deletes by this prefix. */
