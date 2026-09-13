@@ -6,8 +6,9 @@ import { BUSINESS } from "@/data/wcc/content";
 
 /**
  * Mobile-only floating "call" button, mirroring the source site's phone FAB.
- * Appears after the visitor scrolls past the hero (which already carries the
- * phone link) and hides again near the footer CTA column to avoid overlap.
+ * Appears after the visitor scrolls past the hero, which already carries the
+ * phone link (the FinalCTA section has its own prominent call link, so no
+ * additional footer-proximity hiding is needed).
  */
 export function CallFab() {
   const [visible, setVisible] = useState(false);

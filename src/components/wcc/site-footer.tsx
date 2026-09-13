@@ -100,7 +100,12 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row">
-          <p>© {new Date().getFullYear()} {BUSINESS.name} · MetroWest Boston Auto Detailing</p>
+          {/* suppressHydrationWarning: the year is computed at prerender AND
+              on hydration — over a New Year boundary the prerendered HTML can
+              legitimately differ by one year from the hydrating client. */}
+          <p suppressHydrationWarning>
+            © {new Date().getFullYear()} {BUSINESS.name} · MetroWest Boston Auto Detailing
+          </p>
           <p>
             {BUSINESS.address} ·{" "}
             <a href={BUSINESS.phoneHref} className="transition-colors hover:text-primary">

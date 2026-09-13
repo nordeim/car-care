@@ -69,7 +69,24 @@ export const questionRateLimiter = new SlidingWindowRateLimiter({
   max: 5,
 });
 
-/** Extract the client IP the way both routes expect (first hop only). */
+/**
+ * Extract the best-effort visitor IP for rate limiting.
+ *
+ * Proxy chain in production is Cloudflare → Caddy → Next:
+ *  - `cf-connecting-ip` is set/stripped by Cloudflare to the real visitor IP
+ *    (most reliable when traffic flows through CF).
+ *  - `x-forwarded-for` first hop is the classic direct-deployment case
+ *    (Caddy overwrites it with its remote host on its own hop).
+ *  - No headers (direct node-to-node/internal calls) → shared "local" key.
+ *
+ * Residual risk (accepted, ADR-005): if the origin is directly reachable,
+ * both headers are client-spoofable and the in-memory limiter is best-effort
+ * anyway — this keys the bucket, not a security boundary.
+ */
 export function clientIpFrom(request: Request): string {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+  const cf = request.headers.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
+  const xff = request.headers.get("x-forwarded-for")?.trim();
+  if (xff) return xff.split(",")[0].trim();
+  return "local";
 }

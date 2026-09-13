@@ -127,6 +127,17 @@ test.describe("bookings API", () => {
     expect(body.error).toContain("(508) 290-7476");
   });
 
+  test("oversized payload is rejected with 413 before parsing", async ({ request }) => {
+    // ~64KB of notes: far above the 32KB guard, far below anything zod should
+    // have to walk. The route must refuse the payload without parsing it.
+    const resp = await request.post("/api/bookings", {
+      data: bookingPayload({ notes: "x".repeat(64 * 1024) }),
+      headers: { "x-forwarded-for": `pw-413-${Date.now()}` },
+    });
+    expect(resp.status()).toBe(413);
+    expect(((await resp.json()) as { error: string }).error).toContain("too large");
+  });
+
   test("valid booking returns 201 with quote and persists the row", async ({ request }) => {
     const marker = testMarker();
     const resp = await request.post("/api/bookings", {
@@ -175,6 +186,17 @@ test.describe("questions API", () => {
       headers: { "x-forwarded-for": `pw-q-422-${Date.now()}` },
     });
     expect(resp.status()).toBe(422);
+  });
+
+  test("oversized question payload is rejected with 413", async ({ request }) => {
+    const resp = await request.post("/api/questions", {
+      data: questionPayload({
+        name: testMarker(),
+        question: "Do you offer ceramic coating? " + "x".repeat(64 * 1024),
+      }),
+      headers: { "x-forwarded-for": `pw-q-413-${Date.now()}` },
+    });
+    expect(resp.status()).toBe(413);
   });
 
   test("question honeypot returns fake 201 and writes no row", async ({ request }) => {

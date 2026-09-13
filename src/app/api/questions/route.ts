@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { questionSchema } from "@/lib/wcc/schemas";
+import { isBodyTooLarge } from "@/lib/wcc/payload-limit";
 import { questionRateLimiter, clientIpFrom } from "@/lib/wcc/rate-limit";
 
 export async function POST(request: Request) {
+  if (isBodyTooLarge(request)) {
+    return NextResponse.json(
+      { error: "Payload too large — please shorten your message or call (508) 290-7476." },
+      { status: 413 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -45,7 +53,11 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
-    console.error("[api/questions] create failed", error);
+    // Log the message only — raw Prisma error objects can embed bound values.
+    console.error(
+      "[api/questions] create failed:",
+      error instanceof Error ? error.message : String(error),
+    );
     return NextResponse.json(
       { error: "We couldn't send your question. Please call (508) 290-7476." },
       { status: 500 },

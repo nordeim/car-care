@@ -3,9 +3,17 @@ import { db } from "@/lib/db";
 import { findService, quoteFor } from "@/lib/wcc/booking";
 import { bookingSchema } from "@/lib/wcc/schemas";
 import { isSunday } from "@/lib/wcc/dates";
+import { isBodyTooLarge } from "@/lib/wcc/payload-limit";
 import { bookingRateLimiter, clientIpFrom } from "@/lib/wcc/rate-limit";
 
 export async function POST(request: Request) {
+  if (isBodyTooLarge(request)) {
+    return NextResponse.json(
+      { error: "Payload too large — please review your request or call (508) 290-7476." },
+      { status: 413 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -82,7 +90,11 @@ export async function POST(request: Request) {
     const confirmation = `WCC-${booking.id.slice(-6).toUpperCase()}`;
     return NextResponse.json({ ok: true, confirmation, priceQuote }, { status: 201 });
   } catch (error) {
-    console.error("[api/bookings] create failed", error);
+    // Log the message only — raw Prisma error objects can embed bound values.
+    console.error(
+      "[api/bookings] create failed:",
+      error instanceof Error ? error.message : String(error),
+    );
     return NextResponse.json(
       {
         error:
