@@ -2,7 +2,7 @@
 
 **Product:** Marketing + booking site for **We Care Car Care**, auto detailing & ceramic coating studio, Framingham MA (MetroWest Boston, since 2010).
 **Repo:** `github.com/nordeim/car-care` · **Stack:** Next.js 16.3.5 App Router (standalone) · React 19.3 · TypeScript 5.9 · Tailwind 4.3 · Prisma 6.19 + SQLite · Zustand · Zod · Vitest + Playwright
-**Status:** v1.4.1 — 66/66 unit × 3 TZ + 31/31 e2e green · live E2E + API contracts verified on prod · security headers (CSP/HSTS) + 413 payload guard · lighthouse a11y/bp/seo 1.0 · live https://car-care.jesspete.shop (env-driven SEO)
+**Status:** v1.5.0 — 66/66 unit × 3 TZ + 31/31 e2e green · live E2E + API contracts verified on prod · security headers (CSP/HSTS) + 413 payload guard · lighthouse a11y/bp/seo 1.0 · live https://car-care.jesspete.shop (env-driven SEO) · git invariants + content-as-data guarded by `scripts/skill-verify.sh` (10 checks) · cycle-4 audit: PASS, 0 open findings (`docs/code-review-audit-2026-09-cycle4.md`)
 **Source of truth:** Business facts in `src/data/wcc/content.ts`; this PRD derives from `docs/prompt-to-create.md` (clone `https://wecarecarcare.com/` from `nordeim/home-financing`) plus the contracts in `AGENTS.md` / `CLAUDE.md` / `README.md` / `car-care_SKILL.md`.
 **Live:** `https://car-care.jesspete.shop` (canonical, env-driven via `NEXT_PUBLIC_SITE_URL`/`SITE_URL`; original ref `https://wecarecarcare.com`)
 **Last updated:** 2026-09-13
@@ -59,7 +59,7 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 - **F1.2** Dual pricing always visible: each package/tier card shows sedan AND SUV rows (label left, amber price right).
 - **F1.3** Card image bands: `CARD_IMAGES` map by key, 16:6 crop, border; ceramic popular tier gets `ceramic-beads.webp`.
 - **F1.4** Before/after: one photo per scene + CSS dirty-vision filter for "before", pointer capture drag (pos 4–96), `role=slider` + `aria-valuenow` + arrows ±5, `touch-none select-none`.
-- **F1.5** Testimonials: Embla, arrows outside content box (`xl:-left-14/right-14`, `max-xl:hidden`), rating `aria-label`.
+- **F1.5** Testimonials: Embla, arrows outside content box (`xl:-left-12/right-12`, `max-xl:hidden`), rating `aria-label`.
 - **F1.6** FAQ: Radix `single collapsible`, each item `bg-card` rounded, sentence case triggers.
 - **F1.7** Final CTA: photo backdrop + gradient, rating pill, 2 buttons, phone text link.
 - **F1.8** Motion: `[data-reveal]` IntersectionObserver (−10% margin, one-shot, CSS `opacity/translate` 0.5s), `.shine` CTA sweep, `.grain` overlay — all neutralized under `prefers-reduced-motion`.
@@ -121,7 +121,7 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 | `ceramic-1yr` | 1-Year Protection | $560 | $595 | — | — |
 | `ceramic-3yr` | 3-Year Protection | $795 | $995 | ● | — |
 | `ceramic-5yr` | 5-Year Protection | $995 | $1295 | — | — |
-| `interior-only` | Interior Only Detail | $195 | $240 | — | — |
+| `interior-only` | Interior Detail | $195 | $240 | — | — |
 | **Add-on** | Ceramic shield add-on | +$200 flat (regular $299) | | | only if `allowCeramicAddOn` |
 
 `BOOKABLE_SERVICES` (6) derived from above + `summary` (top-3 features) + `popular` + `group` + `allowCeramicAddOn`. `SERVICE_AREAS` 13 towns (verified against the source site's footer) feed footer + JSON-LD `areaServed`. `BUSINESS` phone `(508) 290-7476` / `tel:+15082907476` / Framingham MA / Mon–Sat 8:00–18:00.
@@ -133,8 +133,8 @@ BookingDialog + QuestionDialog — global, Zustand-controlled, Sonner toasts
 | Endpoint | Method | Body (Zod) | Success | Errors |
 |---|---|---|---|---|
 | `/api/bookings` | POST | `serviceKey, vehicleType, serviceMode, date(YYYY-MM-DD ≤60d), time ∈ TIME_SLOTS, name, phone, email, address?, city?, notes?, addOnCeramic, company?` | `201 {ok:true, confirmation:"WCC-XXXXXX", priceQuote:number}` | `400 Invalid JSON` · `413 payload >32KB` · `422 {error, issues[]}` (zod/Sun/address/unknown key/window) · `429 rate limit` · `500 call-the-shop` |
-| `/api/questions` | POST | `name, email, phone?, question(10–2000), company?` | `201 {ok:true}` | same `400/422/429/500` pattern |
-| `company` non-empty on either | — | — | `201 {ok:true, confirmation:"WCC-000000"}` fake, **0 rows** | — (intentional honeypot) |
+| `/api/questions` | POST | `name, email, phone?, question(10–2000), company?` | `201 {ok:true}` | same `400/413/422/429/500` pattern |
+| `company` non-empty on either | — | — | bookings: `201 {ok:true, confirmation:"WCC-000000"}` fake · questions: `201 {ok:true}` — **0 rows either way** | — (intentional honeypot) |
 
 Pipeline order (load-bearing): size guard (413) → parse → zod → honeypot → rate limit (key `cf-connecting-ip` → first XFF hop) → business rules → server price → persist → respond.
 

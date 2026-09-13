@@ -9,8 +9,9 @@
 
 ---
 
-#### Revision Block — v1.2.0 (Tracked Changes)
+#### Revision Block — v1.3.0 (Tracked Changes)
 
+- `[MA]` v1.3.0 — remediation cycles 3+4 refresh (see `docs/code-review-audit-2026-09.md` + cycle 4): shared contract-tested `db-url.ts` resolver + `scripts/db.ts` CLI wrapper (env-drift-proof DB path); security headers (CSP/HSTS/XFO/nosniff/Referrer/Permissions-Policy, `poweredByHeader: false`) in `next.config.ts`; 413 payload guard (32KB) wired into both routes; `cf-connecting-ip`-aware `clientIpFrom`; sanitized API error logs; hydration-safe footer year; one init migration (`prisma/migrations/20260913142416_init/`) from the live-server bootstrap (db:push remains primary — ADR-002 updated); unit suite grew to 66 tests / 8 files (adds `db-url`, `client-ip`, `payload-limit`); e2e grew to 31 tests / 5 specs (adds 413 contracts); `bun.lock` workspace identity fixed (`car-care`); git invariants restored (`.env` + `db/custom.db` untracked, guarded by `scripts/skill-verify.sh` check 9); Pattern-1 sample below now shows the real route code (TZ-safe `isSunday`, `clientIpFrom`, 413 guard). Gates: 66 unit × 3 TZ + 31 e2e green.
 - `[MA]` v1.2.0 — audit cycle 2 (see `docs/audit-e2e-2026-09.md`): `.env.example` added (`.gitignore` negation `!.env.example`); Playwright e2e suite adopted from `nordeim/home-financing` (29 tests, standalone webServer on :3100, `e2e/` typechecked by tsconfig — ADR-010); `public/robots.txt` gained its missing `Sitemap:` directive; a11y remediation (lighthouse 0.97 → 1.0): `role="img"` star spans, content-composed logo name (Label-in-Name), aria-label dropped from the CTA rating `<p>`; hero image made responsive (640w/1024w srcset — phones download 44 KB vs 161 KB); dead `/api` hello-world route deleted. Gates: 49 unit × 3 TZ + 29 e2e green; lighthouse a11y/bp/seo 1.0, perf 0.80.
 - `[MA]` v1.1.2 — supply-chain hardening: `prisma` CLI moved to `devDependencies` (never runtime-imported — only `@prisma/client` via `src/lib/db.ts`); `overrides` added to `package.json` pinning `defu@6.1.7`, `deepmerge-ts@8.0.2`, `baseline-browser-mapping@2.11.23`; `bun audit --prod` now reports zero findings (full-audit remainder is dev-tooling chains only — 24 findings, 0 critical); pre-deploy checklist + known-issues table updated; `car-care_SKILL.md` refreshed to v1.1.0 (project state, S1–S3 follow-up, audit history). All gates re-verified: 49/49 tests × 3 timezones, lint + tsc clean, build green, E2E booking + toast re-confirmed.
 - `[MA]` v1.1.1 — dependency-version realignment (React 19.3.0, Tailwind 4.3.3, Zod 4.6.4, Vitest 5.0.0, Prisma 6.19.3, ESLint 9.39.5 — corrected against `bun.lock` after the v1.1.0 upgrades left stale numbers); ADR-001 decision text updated to reflect that all `wcc/` components became `"use client"` islands in v1.1.0; added `car-care_SKILL.md` (v1.0.0, 1,017 lines) as a companion document — distilled via the six-phase `to-distill-project-into-skill` process with all facts verified against the working tree.
@@ -51,9 +52,9 @@ This is the single source of truth for how the car-care codebase is built, why i
 | Language | TypeScript | 5.9.3 | Content-as-data pattern (§3.3) only holds with strict typing |
 | Styling | Tailwind CSS | 4.3.3 | CSS-first tokens colocate the brand system with its utilities |
 | UI primitives | shadcn/ui (Radix) | 9 components vendored | Only the load-bearing set survives the dependency prune: accordion, button, carousel, dialog, input, label, sheet, sonner, textarea (ADR-008) |
-| State | Zustand | 5.0.x | 30-line dialog store beats Context boilerplate (ADR-004) |
+| State | Zustand | 5.0.x | 36-line dialog store beats Context boilerplate (ADR-004) |
 | Validation | Zod | 4.6.4 | One schema per endpoint in `src/lib/wcc/schemas.ts`; server is the authority |
-| Tests | Vitest + Playwright | vitest 5.0.0 / @playwright/test 1.63.0 | 49 unit tests (ADR-009) + 29 e2e tests on the standalone build (ADR-010) |
+| Tests | Vitest + Playwright | vitest 5.0.0 / @playwright/test 1.63.0 | 66 unit tests / 8 files (ADR-009) + 31 e2e tests / 5 specs on the standalone build (ADR-010) |
 | ORM | Prisma | 6.19.3 | Typed models + `db:push` workflow fits single-file SQLite |
 | Database | SQLite | (file: `db/custom.db`, gitignored) | Zero-ops persistence for a single-operator local business |
 | Carousel | embla-carousel-react | 8.6.0 | Lightweight testimonial carousel |
@@ -72,9 +73,9 @@ This is the single source of truth for how the car-care codebase is built, why i
 - **Consequences:** Positive — tiny client bundle, trivial mental model, one page to test E2E. Negative — the page grows long (mitigated by section components); deep links only exist as `#anchors`.
 - **Alternatives Rejected:** Separate `/booking` page (breaks the single CTA flow); a site builder / hosted CMS (not a code asset, no custom booking rules); SPA + separate API (two deployables for no gain).
 
-**ADR-002: SQLite via Prisma with `db:push` (no migration files)**
+**ADR-002: SQLite via Prisma with `db:push` as the primary workflow**
 
-- **Context:** Lead volume is dozens per week, single writer, single operator, no DB ops staff.
+- **Context:** Lead volume is dozens per week, single writer, single operator, no DB ops staff. (One init migration exists from the 2026-09-13 live-server bootstrap — `prisma/migrations/20260913142416_init/` — and matches the schema; day-to-day schema sync stays `db:push`.)
 - **Decision:** Prisma 6 with `provider = "sqlite"`, database at `db/custom.db`, schema applied with `bun run db:push` (`--accept-data-loss` in the script). Two models: `Booking`, `Question`.
 - **Rationale:** SQLite is a file — backup is `cp`, inspection is `prisma studio`, hosting needs no database service. For a schema this small (2 tables, 3 indexes) and a team of one, migration history is ceremony without payoff.
 - **Consequences:** Positive — zero infra, atomic reads, perfect dev/prod parity. Negative — no concurrent multi-process writes (irrelevant at this scale); `db:push` can drop columns on schema change (acceptable — schema is stable and the DB holds transient leads).
@@ -141,7 +142,7 @@ This is the single source of truth for how the car-care codebase is built, why i
 - **Context:** Cycle-1 left the dialog flow and API surface manually verified only; the repo had no executable UI contract. The reference repo (`nordeim/home-financing`) had already distilled a working pattern: production webServer, request-fixture API tests with unique `x-forwarded-for`, and axe-core a11y gates.
 - **Decision:** Adopt Playwright (chromium, serial workers, port 3100). The `webServer` runs the standalone artifact via `bun run start` — never `next dev`, which Next refuses under `output: "standalone"` anyway — so e2e validates the shipped bundle. Specs: smoke, SEO/JSON-LD, booking funnel with SQLite server-truth assertions + `PW E2E`-prefixed row cleanup, API contracts, axe gates (critical + serious). `e2e/` is included in tsconfig so `tsc` typechecks the specs.
 - **Rationale:** UI flows asserted against server truth (the DB row), not just DOM state — the same rigor the unit suite applies to business rules. The standalone target catches bundling/serving regressions dev-mode hides.
-- **Consequences:** Positive — 29 e2e tests lock the funnel, API contracts, SEO, and a11y (lighthouse a11y 1.0); the suite caught the missing robots `Sitemap:` directive before release. Negative — serial execution against one SQLite file (slower, ~30 s); browsers are opt-in per environment (chromium only by default).
+- **Consequences:** Positive — 31 e2e tests lock the funnel, API contracts (incl. 413), SEO, and a11y (lighthouse a11y 1.0); the suite caught the missing robots `Sitemap:` directive before release. Negative — serial execution against one SQLite file (slower, ~30 s); browsers are opt-in per environment (chromium only by default).
 - **Alternatives Rejected:** Cypress (heavier runner, no request-fixture parity); visual-regression snapshots (maintenance-heavy for a design still evolving); e2e against dev HMR (would validate a different artifact than production serves).
 
 ---
@@ -236,11 +237,11 @@ car-care/
 │   │   ├── layout.tsx                  ← fonts, metadata, JSON-LD, Toaster
 │   │   └── page.tsx                    ← the single page (Layer 4)
 │   ├── components/
-│   │   ├── wcc/                        ← 15 site sections & dialogs (Layer 3)
+│   │   ├── wcc/                        ← 16 site sections & dialogs (Layer 3)
 │   │   │   ├── site-header.tsx         ← sticky nav, mobile Sheet
 │   │   │   ├── hero.tsx                ← image bg, stats band
 │   │   │   ├── before-after.tsx        ← drag-compare slider (dirty-vision)
-│   │   │   ├── packages.tsx            ← sedan/SUV price toggle
+│   │   │   ├── packages.tsx            ← dual sedan/SUV price rows (always visible)
 │   │   │   ├── ceramic-upsell.tsx      ← $200 add-on promo
 │   │   │   ├── ceramic-tiers.tsx       ← 1/3/5-year tiers
 │   │   │   ├── interior-only.tsx       ← interior service block
@@ -278,22 +279,27 @@ Directories **not** part of the shipped app: `foundation/` (cloned reference rep
 ```typescript
 // src/app/api/bookings/route.ts (condensed; order is the contract)
 export async function POST(request: Request) {
+  if (isBodyTooLarge(request)) {                          // 0. payload guard — >32KB ⇒ 413
+    return NextResponse.json({ error: "Payload too large — …" }, { status: 413 });
+  }
+
   let body: unknown;
   try { body = await request.json(); }                    // 1. parse — bad JSON ⇒ 400
   catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }); }
 
-  const parsed = bookingSchema.safeParse(body);           // 2. zod — shape ⇒ 422 + issues[]
+  const parsed = bookingSchema.safeParse(body);           // 2. zod — shape + 60-day window ⇒ 422 + issues[]
   if (!parsed.success) { /* ...422 with issue map... */ }
 
   if (parsed.data.company) {                              // 3. honeypot — fake 201, NO row
     return NextResponse.json({ ok: true, confirmation: "WCC-000000" }, { status: 201 });
   }
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
-  if (rateLimited(ip)) { /* ...429 with call-us message... */ }   // 4. rate limit
+  if (bookingRateLimiter.check(clientIpFrom(request))) {  // 4. rate limit — cf-connecting-ip → first XFF hop ⇒ 429
+    /* ...429 with call-us message... */
+  }
 
   // 5. business rules — server-side truth, never trust the client
-  if (new Date(`${data.date}T00:00:00`).getDay() === 0) { /* ...422 Sunday closed... */ }
+  if (isSunday(data.date)) { /* ...422 Sunday closed (TZ-safe: UTC-parsed ISO) ... */ }
   if (data.serviceMode !== "shop" && !data.address) { /* ...422 address required... */ }
 
   const priceQuote = quoteFor(data.serviceKey, data.vehicleType, data.addOnCeramic); // 6. re-price
@@ -504,7 +510,7 @@ Framer-motion was removed with the dependency prune (ADR-008); the reveal/shine 
 | S3 | Per-IP request rate ≤ 5 per 10-minute sliding window per endpoint | In-memory `Map<string, number[]>` filter; `429` with call-the-shop fallback |
 | S4 | Business rules re-checked server-side (Sunday closed, address for mobile/pickup, date ≤ 60 days, service key known) | Route handler logic after validation — client checks are UX only |
 | S5 | Prices are computed only by `quoteFor()` on the server before persisting | Pattern 4 (§3.3); client quote is advisory |
-| S6 | No secrets in client code; the only env var is `DATABASE_URL` | `.env` gitignored; `.env*` in `.gitignore`; no keys in `content.ts` |
+| S6 | No secrets in client code; env vars are exactly `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL`, `SITE_URL` (no keys anywhere) | `.env` gitignored AND untracked (guard: `scripts/skill-verify.sh` check 9); `.env*` in `.gitignore`; no keys in `content.ts` |
 | S7 | No `dangerouslySetInnerHTML` with user input | The single use is the constant JSON-LD block in `layout.tsx` (static object, no user data) |
 | S8 | SQL only through Prisma parameterized queries | No raw queries anywhere in `src/` |
 
@@ -543,11 +549,18 @@ Framer-motion was removed with the dependency prune (ADR-008); the reveal/shine 
 | Unit (zod schemas) | 1 | 15 | `src/lib/wcc/__tests__/schemas.test.ts` | Vitest |
 | Unit (rate limiter) | 1 | 6 | `src/lib/wcc/__tests__/rate-limit.test.ts` | Vitest |
 | Unit (dialog store) | 1 | 5 | `src/lib/wcc/__tests__/booking-store.test.ts` | Vitest |
-| Component (dialog flows) | 0 | 0 | — | not yet |
-| API integration | 0 | 0 | — | not yet (manual curl protocol below) |
-| E2E | 0 | 0 | — | not yet (manual browser protocol below) |
+| Unit (DB-URL resolver contract) | 1 | 8 | `src/lib/wcc/__tests__/db-url.test.ts` | Vitest |
+| Unit (client IP extraction) | 1 | 5 | `src/lib/wcc/__tests__/client-ip.test.ts` | Vitest |
+| Unit (payload-size guard) | 1 | 4 | `src/lib/wcc/__tests__/payload-limit.test.ts` | Vitest |
+| E2E (smoke + sections + images + FAB) | 1 | 9 | `e2e/smoke.spec.ts` | Playwright |
+| E2E (API contracts incl. 413) | 1 | 14 | `e2e/api.spec.ts` | Playwright |
+| E2E (booking funnel + SQLite truth) | 1 | 2 | `e2e/booking-funnel.spec.ts` | Playwright |
+| E2E (SEO + JSON-LD) | 1 | 4 | `e2e/seo.spec.ts` | Playwright |
+| E2E (axe a11y gates) | 1 | 2 | `e2e/a11y.spec.ts` | Playwright |
+| Component (dialog flows) | 0 | 0 | — | covered by e2e funnel specs |
+| API integration | 0 | 0 | — | covered by e2e api specs (400/413/422/429/honeypot/201) |
 
-**Status:** 49 unit tests across 5 suites (`npm test`, ~1s). The suite is part of the commit gate and is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore` (ADR-009). Component and E2E layers remain manual — the natural next investment is a Playwright spec for the 4-step dialog.
+**Status:** 66 unit tests across 8 files (`npm test`, ~1s) + 31 e2e tests across 5 specs (`bun run e2e`, standalone build on :3100). Both suites are part of the commit gate; the unit suite is verified green under `TZ=UTC`, `TZ=America/New_York`, and `TZ=Asia/Singapore` (ADR-009), and the e2e suite drives the real standalone server with SQLite server-truth assertions and test-row cleanup (ADR-010).
 
 ### 8.2 Verification Protocol (manual layers on top of the unit suite)
 
@@ -568,7 +581,7 @@ No coverage tooling configured. The de facto gate is `npm test` + §8.2 executed
 - [ ] `bunx tsc --noEmit` clean (covers `src/` **and** `e2e/`)
 - [ ] `bun run build` succeeds (including static/public copy into `.next/standalone/`)
 - [ ] `bun audit --prod` shows no findings (full audit: 0 critical; dev-tool chains acceptable)
-- [ ] `bun run e2e` — 29/29 green on the standalone build (includes booking E2E confirmation + toast, honeypot fake-201, and the axe a11y gate)
+- [ ] `bun run e2e` — 31/31 green on the standalone build (includes booking E2E confirmation + toast, honeypot fake-201, 413 payload contracts, and the axe a11y gate)
 - [ ] Test rows removed from `db/custom.db` (the e2e teardown does this; verify `PW E2E` count is 0)
 - [ ] No changes to `.env`, keys, `db/`, or `upload/` staged for commit
 - [ ] `git status` clean; pushed to `origin/main`
@@ -592,7 +605,9 @@ The copy steps are **part of the product**, not conveniences: `output: "standalo
 
 | Name | Required | Description | Default |
 |------|----------|-------------|---------|
-| `DATABASE_URL` | Yes | SQLite URL for Prisma; path relative to `prisma/`. `file:../db/custom.db` resolves to `<repo>/db/custom.db` | none — set in `.env` (gitignored) |
+| `DATABASE_URL` | Yes | SQLite URL for Prisma; relative `file:../db/custom.db` is re-anchored to an absolute repo-root path by the shared `src/lib/wcc/db-url.ts` resolver (runtime + `scripts/db.ts` CLI wrapper) | none — set in `.env` (gitignored) |
+| `NEXT_PUBLIC_SITE_URL` | Yes (SEO) | Canonical site URL for `metadataBase`/OG/sitemap/robots (client + server) | `https://car-care.jesspete.shop` (live) |
+| `SITE_URL` | No (fallback) | Server fallback for sitemap/robots when `NEXT_PUBLIC_SITE_URL` is not set | `https://car-care.jesspete.shop` |
 
 That is the complete list. There are no third-party API keys, auth secrets, or feature flags.
 
@@ -612,7 +627,7 @@ None configured. Pushes go to `origin/main` on GitHub (from this environment, vi
 
 ```bash
 bun install                                       # bun ≥ 1.3 (Node 24 present as fallback)
-echo 'DATABASE_URL="file:../db/custom.db"' > .env  # the only env var (relative paths resolve from prisma/)
+cp .env.example .env                               # DATABASE_URL + NEXT_PUBLIC_SITE_URL/SITE_URL (live URL)
 bun run db:generate                              # Prisma client into node_modules
 bun run db:push                                  # apply schema to db/custom.db
 bun run dev                                       # http://localhost:3000 (dev.log)
@@ -650,8 +665,8 @@ Optional inspection: `bunx prisma studio` (browse Booking/Question rows at `http
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
-| ~~MEDIUM~~ | ~~`db/custom.db` tracked while also being the runtime DB~~ | ~~Customer PII in git history~~ | **Resolved v1.1.0** — untracked + `/db/*.db` gitignored; `db:push` recreates it |
-| ~~MEDIUM~~ | ~~No automated test suite (0 tests)~~ | ~~Regressions ship undetected~~ | **Resolved v1.1.0** — Vitest, 49 unit tests (ADR-009); component/E2E layers still manual |
+| ~~MEDIUM~~ | ~~`db/custom.db` tracked while also being the runtime DB~~ | ~~Customer PII in git history~~ | **Resolved v1.1.0** — untracked + `/db/*.db` gitignored; `db:push` recreates it. (Re-tracked once by commit `34a172d`, untracked again cycle 4 + guarded by `skill-verify.sh` check 9) |
+| ~~MEDIUM~~ | ~~No automated test suite (0 tests)~~ | ~~Regressions ship undetected~~ | **Resolved v1.1.0** — Vitest (now 66 unit tests / 8 files, ADR-009); e2e layer added cycle 2 (now 31 tests / 5 specs, ADR-010) |
 | LOW | In-memory rate limit resets on restart and is not shared across instances | Temporary spam window after deploys | Accepted (ADR-005) at this scale — now shares one pruned `SlidingWindowRateLimiter` module |
 | ~~LOW~~ | ~~`ignoreBuildErrors: true` / `reactStrictMode: false` in `next.config.ts`~~ | ~~Type errors surface only via manual tsc~~ | **Resolved v1.1.0** — `ignoreBuildErrors: false`, `reactStrictMode: true`; tsconfig scoped to `src/` (+ noImplicitAny) so `tsc --noEmit` is clean |
 | ~~LOW~~ | ~~Unused template dependencies (`next-auth`, `recharts`, framer-motion, …)~~ | ~~Install weight, audit surface~~ | **Resolved v1.1.0** — 44 deps + 39 ui primitives pruned; `next` upgraded to 16.3.5; 0 critical vulns (ADR-008). Remaining `bun audit` findings are dev-tooling chains only |
@@ -686,7 +701,7 @@ Optional inspection: `bunx prisma studio` (browse Booking/Question rows at `http
 | `src/components/wcc/call-fab.tsx` | 36 | Mobile-only floating call button (appears after hero) |
 | `src/lib/wcc/booking.ts` | 69 | `findService`, `quoteFor`, `buildDayOptions`, `usd` — pure domain logic |
 | `src/lib/wcc/booking-store.ts` | 38 | Zustand dialog store (ADR-004) — `openBooking(serviceKey?, { addOnCeramic? })` |
-| `src/lib/wcc/__tests__/` | 5 files | 49 Vitest unit tests (ADR-009) |
+| `src/lib/wcc/__tests__/` | 8 files | 66 Vitest unit tests (ADR-009) |
 | `prisma/schema.prisma` | 45 | Booking + Question models, indexes |
 | `src/lib/db.ts` | 15 | Prisma singleton (query logging dev-only) |
 | `src/app/page.tsx` | 37 | The single page — section composition + CallFab |

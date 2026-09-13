@@ -1,5 +1,7 @@
 # Validation Report — PRD Alignment (2026-09-13)
 
+> **Status note (2026-09-13, remediation cycle 4):** this report captures the codebase state at PRD-creation time — **before** remediation cycles 3–4. Numbers below reflect that snapshot (49 unit / 29 e2e / api 12; `public/images` 7 files before the 640w hero variant landed). Current state: **66 unit / 8 files × 3 TZ + 31 e2e / 5 specs (api 14 — includes 413 contracts) green, `public/images` 8 files.** The traceability matrix conclusions remain valid; the gate counts are superseded by `AGENTS.md` (Local gate) and `car-care_SKILL.md` (project_state).
+
 **Scope:** Validate working tree at `/Home1/project/car-care` against `PRD.md` v1 (derived from `docs/prompt-to-create.md` + `content.ts` + `AGENTS/CLAUDE/README/SKILL/PAD`) and against documented contracts.  
 **Method:** Static code audit → live build verification → test gates → security scan. Evidence is cited per finding.  
 **Verdict:** **PASS — ship-ready** with 3 fixes applied. All PRD functional + NFR gates green.

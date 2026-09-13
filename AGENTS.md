@@ -47,7 +47,7 @@ Live deploy: **`https://car-care.jesspete.shop`** (canonical). SEO is env-driven
 
 Vitest (`vitest.config.ts`, node env, `@/` alias). `src/lib/wcc/__tests__/` holds the suites: `booking.test.ts` (pricing/slots regression locks), `dates.test.ts` (timezone-safe rules), `schemas.test.ts` (accept/reject matrix), `rate-limit.test.ts` (window + prune), `booking-store.test.ts` (dialog presets). Run green under UTC / America/New_York / Asia/Singapore — keep it that way when touching date logic.
 
-Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production build** via `bun run start` (never `next dev`) on :3100: smoke (sections, dual pricing, sliders, lazy images, mobile FAB, console-error-free), SEO/JSON-LD, booking funnel with SQLite server-truth assertions + test-row cleanup, API contracts (400/422/429/honeypot/201, unique `x-forwarded-for` per test), and axe a11y gates (critical + serious). Specs are typechecked by `tsc` (tsconfig includes `e2e/`). Env template: `.env.example` → `cp .env.example .env`.
+Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production build** via `bun run start` (never `next dev`) on :3100: smoke (sections, dual pricing, sliders, lazy images, mobile FAB, console-error-free), SEO/JSON-LD, booking funnel with SQLite server-truth assertions + test-row cleanup, API contracts (400/413/422/429/honeypot/201, unique `x-forwarded-for` per test), and axe a11y gates (critical + serious). Specs are typechecked by `tsc` (tsconfig includes `e2e/`). Env template: `.env.example` → `cp .env.example .env`.
 
 ## Gotchas
 
@@ -66,11 +66,12 @@ Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production b
 ## Git
 
 - Branch `main`, conventional commits.
-- Pushing from this sandbox: no `openssh` — use the Paramiko wrapper:
+- Pushing from this sandbox (no `openssh` — use the Paramiko wrapper; path is repo-relative):
   ```bash
-  GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" git push origin main
+  GIT_SSH_COMMAND="docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" git push origin main
   ```
-- `.env`, `worklog.md`, `db/*.db`, SSH keys must never be committed (already gitignored).
+  (run from the repo root; see `docs/how-to-git-push-using-ssh-wrapper_SKILL.md`)
+- `.env`, `worklog.md`, `db/*.db`, SSH keys must never be committed (already gitignored). Guard: `scripts/skill-verify.sh` check 9 fails the gate if `.env` or any `.db` is tracked — commit `34a172d` regressed this once (re-tracked both); don't repeat it.
 
 ## Local gate (post-browser, post-cleanup): 
  
@@ -79,6 +80,7 @@ Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production b
   bunx tsc --noEmit # 0 
   bun run lint      # 0 
   bun run build     # Route (app) ○ /, ƒ /api/bookings, ƒ /api/questions, ○ /icon.svg, ○ /sitemap.xml, ○ /robots.txt 
-  bun run e2e       # 31/31 using 1 worker (2.9s a11y, 85ms 429, 14ms 413, 323ms 201 persistence) — full log retained 
+  bun run e2e       # 31/31 using 1 worker — includes 413 payload contracts on both routes
+  bash scripts/skill-verify.sh  # ALL CHECKS PASSED (incl. git-invariant check 9: no tracked .env/.db)
 ```
 

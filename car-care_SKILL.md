@@ -7,12 +7,12 @@ description: >
   so any coding agent can extend, debug, onboard onto, or replicate the site
   without re-learning its hard-won lessons: timezone-safe date rules, honeypot
   + sliding-window bot defense, dark-first two-tone design system, 4-step
-  booking dialog, and the test pyramid that locks it all down: 57 Vitest
-  unit tests (timezone-verified) plus a 29-test Playwright e2e suite that
+  booking dialog, and the test pyramid that locks it all down: 66 Vitest
+  unit tests (timezone-verified) plus a 31-test Playwright e2e suite that
   drives the standalone production build.
-version: 1.4.0
+version: 1.4.2
 last_updated: 2026-09-13
-project_state: 66/66 unit tests green (UTC + America/New_York + Asia/Singapore) · 31/31 e2e green (standalone build) · live E2E + API contracts verified on prod · security headers (CSP/HSTS/XFO/nosniff) + poweredByHeader off · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · shared db-url.ts resolver + scripts/db.ts CLI wrapper · verified 2026-09-13
+project_state: 66/66 unit tests green (UTC + America/New_York + Asia/Singapore) · 31/31 e2e green (standalone build) · live E2E + API contracts verified on prod · security headers (CSP/HSTS/XFO/nosniff) + poweredByHeader off · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · shared db-url.ts resolver + scripts/db.ts CLI wrapper · git invariants + content-as-data guarded by scripts/skill-verify.sh (10 checks, repo-relative) · cycle-4 audit PASS (docs/code-review-audit-2026-09-cycle4.md) · verified 2026-09-13
 tags:
   - nextjs16
   - react19
@@ -119,9 +119,9 @@ All versions are **locked versions from `bun.lock`** (verified 2026-09-13 via `b
 | Toasts | `sonner` | 2.0.8 | `<Toaster />` mounted in `layout.tsx`; hardcoded dark. The ONLY toast system — the old radix toast was removed (§9, bug C11). |
 | State | `zustand` | 5.0.15 | One 36-line store for dialog orchestration (ADR-004). |
 | Validation | `zod` | 4.6.4 | Shared schemas in `src/lib/wcc/schemas.ts` — server-authoritative, client-reusable. |
-| ORM | `prisma` + `@prisma/client` | 6.19.3 / 6.19.3 | `db:push` workflow (no migration files, ADR-002). |
+| ORM | `prisma` + `@prisma/client` | 6.19.3 / 6.19.3 | `db:push` is the primary sync workflow (ADR-002). One init migration (`prisma/migrations/20260913142416_init/`) exists from the 2026-09-13 live-server bootstrap (`bun run db:migrate`, see `docs/start_server_log.txt`); it matches the schema — `db:push` remains the day-to-day workflow. |
 | Database | SQLite | — | Single file `db/custom.db` (**gitignored — customer PII**). |
-| Tests | `vitest` + `@playwright/test` | 5.0.0 / 1.63.0 | Vitest: node env, `@/` alias, 66 unit tests / 8 files. Playwright: chromium, serial, 31 e2e tests / 7 spec files against the standalone build on :3100 (ADR-010). |
+| Tests | `vitest` + `@playwright/test` | 5.0.0 / 1.63.0 | Vitest: node env, `@/` alias, 66 unit tests / 8 files. Playwright: chromium, serial, 31 e2e tests / 5 spec files against the standalone build on :3100 (ADR-010). |
 | Icons | `lucide-react` | 0.525.0 | Icon usage is `aria-hidden` + adjacent text labels. |
 | Image optimization | `sharp` | 0.35.4 | Used by `scripts/optimize-images.mjs` (WebP pipeline). |
 | Utility | `class-variance-authority` / `clsx` / `tailwind-merge` | 0.7.1 / 2.1.1 / 3.7.0 | `cn()` in `src/lib/utils.ts`. |
@@ -259,7 +259,7 @@ src/components/wcc/ ← 16 site components (ALL "use client") — feature layer
 src/components/ui/  ← 9 vendored shadcn primitives (6 of them "use client")
 src/data/wcc/       ← content.ts — typed content, the single source of truth (ADR-003)
 src/lib/wcc/        ← pure logic: booking.ts, dates.ts, schemas.ts, rate-limit.ts,
-                       booking-store.ts (zustand) + __tests__/ (49 vitest tests)
+                       booking-store.ts (zustand) + __tests__/ (66 vitest tests)
 ```
 
 **Boundary rules:** components never fetch or touch Prisma; API routes never render; pure logic (`lib/wcc`) imports nothing from React (except the store, which imports zustand); content flows *down* (data → component), never up. Both server (routes) and client (dialog) import the same `schemas.ts` and `booking.ts` — one source of truth for prices and validation.
@@ -681,6 +681,10 @@ Every mutating endpoint follows the same fixed order — defense layers run chea
 
 ```ts
 export async function POST(request: Request) {
+  if (isBodyTooLarge(request)) {                       // 0. payload-size guard (413 >32KB)
+    return NextResponse.json({ error: "Payload too large — …" }, { status: 413 });
+  }
+
   let body: unknown;                                     // 1. parse (never trust)
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }); }
@@ -806,7 +810,7 @@ Tailwind 4 defaults, no custom breakpoints: **`sm` 640 / `md` 768 / `lg` 1024 / 
 | Breakpoint | What switches (verified usage scan) |
 |---|---|
 | `sm` (640) | The workhorse: headings step up (`text-3xl sm:text-5xl`), 3-col stat band, pillar grids (`sm:grid-cols-3`), CTAs go row (`sm:flex-row`), card paddings, header phone + Book button appear (`hidden sm:flex`) |
-| `md` (768) | Carousel item basis (`md:basis-1/2`) — the only `md` in the codebase |
+| `md` (768) | Carousel item basis (`md:basis-1/2`) — the only `md` in `src/components/wcc/` (vendored shadcn `input`/`textarea` also carry `md:text-sm`) |
 | `lg` (1024) | **Layout switchpoint**: desktop nav appears / hamburger hides (`hidden lg:flex` / `lg:hidden`), 2-col section grids (`lg:grid-cols-2`), call FAB hidden (`lg:hidden`), footer 3-col, hero h1 max size |
 | `xl` (1280) | Carousel arrows appear in the outer gutter (`max-xl:hidden`) + 3-across cards (`xl:basis-1/3`) |
 
@@ -863,7 +867,7 @@ Every hex below is copied from the `:root` block of `src/app/globals.css` — a 
 
 **Opacity variants in real use:** `bg-background/60` (price rows), `/88` + `/45` + `/40` + `/35` (photo overlays), `bg-black/70` (Before label), `bg-primary/70` (borders), `text-primary/70` (quote glyph), `text-foreground/85–90` (body on dark).
 
-**Forbidden:** raw Tailwind palette colors (`amber-400`, `gray-500`, `blue-600`…) anywhere in `src/` — the brand owns every visible color through tokens. The two greps that enforce this during review: `rg "amber-|gray-|slate-|blue-|red-|green-" src/` should return nothing styled; white/black appear only as overlay alphas (`bg-black/40`, `bg-white/90` divider) and in the icon SVG.
+**Forbidden:** raw Tailwind palette colors (`amber-400`, `gray-500`, `blue-600`…) anywhere in `src/` — the brand owns every visible color through tokens. The two greps that enforce this during review: `rg "amber-|gray-|slate-|blue-|red-|green-" src/` should return nothing styled; white/black appear only as overlay alphas (`bg-black/40`, `bg-white/90` divider), the hero h1 (`text-white`), the slider handle border+label (`before-after.tsx`), and in the icon SVG. The price/phone half of the content-as-data rule is executable: `scripts/skill-verify.sh` check 10 fails the gate on any `usd(<digits>)`, `$<digits>`, or `290-7476` literal in `src/components/`.
 
 **The singular exception:** the scrollbar thumb greys (`#2a2d33` / `#3a3e45`) are hardcoded in `globals.css` — cosmetic-only, no token needed.
 
@@ -941,7 +945,7 @@ Full context/decision/rationale text lives in `Project_Architecture_Document.md`
 | ADR | Decision | One-line rationale |
 |---|---|---|
 | ADR-001 | Single-page App Router site, interactive complexity in dialogs | one story, one conversion path; multi-page adds zero SEO for a single-location business |
-| ADR-002 | SQLite via Prisma, `db:push` (no migration files) | single-file persistence fits lead volumes of dozens/week; migrations would be ceremony |
+| ADR-002 | SQLite via Prisma, `db:push` as the primary workflow (init migration exists from live bootstrap) | single-file persistence fits lead volumes of dozens/week; migrations beyond the init would be ceremony |
 | ADR-003 | Content as a typed TS module (`content.ts`), no CMS | monthly-at-most content changes; typecheck beats admin auth surface |
 | ADR-004 | Zustand over Context/URL state for dialogs | 9+ components need open-access; selectors avoid re-render cascades |
 | ADR-005 | Bot defense without auth: honeypot + in-memory sliding window | public booking site; fake-success honeypot leaks nothing; per-process Map is fine single-node |
@@ -1022,6 +1026,10 @@ What this catches that `tsc`/`vitest`/`build` cannot: toast renderers that were 
 **Provenance.** Distilled 2026-09-13 following the six-phase process (analyze → plan → validate → implement → verify → deliver) from the `to-distill-project-into-skill` meta-skill. Facts were verified against the working tree at `main @ 7a4a4e0`: versions via `bun pm ls`; test counts via `TZ=UTC npm test`; component counts via `find src/components`; colors copied from `globals.css`; z-index and breakpoints via usage scans; contrast ratios computed with the WCAG relative-luminance formula; all referenced file paths spot-checked to exist.
 
 **Drift maintenance log.** 2026-09-13 (v1.4.0, remediation cycle 3): `SERVICE_AREAS` corrected to 13 towns (empirically verified against the source site's footer, which also lists 13); `scripts/db.ts` CLI wrapper + shared `db-url.ts` resolver documented (§3.1, §10); dead `/api` route references removed repo-wide; tiered review + security audit (`docs/code-review-audit-2026-09.md`) remediated — security headers (CSP/HSTS/XFO/nosniff/Referrer/Permissions-Policy, `poweredByHeader: false`), 413 payload guard (32KB cap), `cf-connecting-ip`-aware rate limiting, sanitized API error logs, hydration-safe footer year; test counts refreshed via `TZ=UTC npm test` (66/66, 8 files — adds `db-url`, `client-ip`, `payload-limit`) and e2e 31/31.
+
+2026-09-13 (v1.4.1, remediation cycle 4): git-invariant regression fixed — commit 34a172d had re-tracked `.env` + `db/custom.db` (both untracked again; `scripts/skill-verify.sh` check 9 now guards this); frontmatter/§5.1/§2 test counts aligned to 66/8/31-5-specs (frontmatter still said 57/29, §5.1 said 49, §2 said 7 spec files); §15.1 canonical route pattern now includes the 413 payload guard as step 0; §17 `md` claim scoped to wcc components; §19 white/black usage completed (hero h1, slider handle); ADR-002/§2 ORM row updated for the init migration; `bun.lock` workspace name fixed (`nextjs_tailwind_shadcn_ts` → `car-care`); `globals.css` teal contrast comment corrected to 13.3:1.
+
+2026-09-13 (v1.4.2, cycle 4 audit + hardening): tiered review + security audit round 2 (`docs/code-review-audit-2026-09-cycle4.md`) — verdict PASS, 2 LOW findings both fixed the same cycle: booking-dialog now interpolates `CERAMIC_ADDON.price`/`regularPrice` (was `usd(200)`/`usd(299)`/`"(+$200)"` literals) and both dialogs interpolate `BUSINESS.phone` in network-error strings; §19's "two greps that enforce this during review" are now executable as `scripts/skill-verify.sh` **check 10** (content-as-data: no hardcoded prices or shop phone in `src/components/` — RED→GREEN TDD cycle: 5 hits → 0). Verify script is now repo-relative (was hardcoded `/home/z/my-project`) with 10 checks total.
 
 **Drift check** — run when this doc is >1 sprint stale:
 

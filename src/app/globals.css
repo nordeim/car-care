@@ -60,7 +60,7 @@
   --primary-foreground: #17120a;
   /* Secondary accent for keyword highlights (two-tone system like the
      source site: amber for CTAs, teal for emphasis words).
-     #5eead4 on #0a0b0d ≈ 10.9:1 — WCAG AAA. */
+     #5eead4 on #0a0b0d ≈ 13.3:1 — WCAG AAA. */
   --accent-teal: #5eead4;
   --secondary: #1a1d21;
   --secondary-foreground: #e8e6df;

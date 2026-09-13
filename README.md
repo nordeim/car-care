@@ -82,7 +82,7 @@ flowchart TB
     ┗ 📄 utils.ts — cn()
 📂 prisma — 📄 schema.prisma — Booking, Question models
 📂 db — runtime SQLite (gitignored; created by db:push)
-📂 public — logo.svg, robots.txt, 📂 images (6 generated WebP assets)
+📂 public — logo.svg, robots.txt, 📂 images (8 WebP assets: 6 originals + hero-car 640w/1024w responsive variants)
 📂 scripts — db.ts (Prisma CLI wrapper — pins resolved DB path) · image generation / optimization / visual-check helpers
 📂 docs — project prompt, skill docs, SSH git wrapper, audit + remediation plan
 ```
@@ -178,6 +178,7 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 | Audit + remediation (visual parity, security, tests) | ✅ Done | See `docs/audit-and-remediation-2026-09.md` — Next 16.3.5, dep pruning, dual pricing, teal accent system, toast fix, FAB |
 | Audit + remediation cycle 2 (E2E suite, a11y, perf) | ✅ Done | See `docs/audit-e2e-2026-09.md` — Playwright 29 e2e, lighthouse a11y/bp/seo 1.0, responsive hero, `.env.example`, dead-route removal |
 | Remediation cycle 3 (validation + live E2E + audit hardening) | ✅ Done | Shared unit-tested DB-URL resolver (`db-url.ts`) + `scripts/db.ts` CLI wrapper (kills env-drift DB mismatch), doc truthfulness pass (dead `/api` refs, 13 service areas, package identity); tiered review + security audit → `docs/code-review-audit-2026-09.md`: security headers + CSP, `poweredByHeader:false`, 413 payload guard, `cf-connecting-ip`-aware rate limiting, sanitized API error logs, hydration-safe footer year — 66 unit + 31 e2e green |
+| Remediation cycle 4 (git invariants + docs truth + audit round 2) | ✅ Done | See `docs/code-review-audit-2026-09-cycle4.md` — `.env`/`db/custom.db` re-tracked by `34a172d` → untracked + regression guard (`skill-verify.sh` check 9); SKILL/PAD/PRD/AGENTS/CLAUDE drift corrected (stale test counts, TZ-unsafe PAD sample, migrations story, SSH path, 8 WebP assets); `bun.lock` identity fixed; content-as-data violations fixed in dialogs (`CERAMIC_ADDON`/`BUSINESS.phone` interpolation) + check-10 guard — 66 unit + 31 e2e green × 3 TZ |
 | PRD + validation report (standalone DB trap fix, live URL) | ✅ Done | See `PRD.md` + `docs/validation-report-PRD.md` — `file:../db/custom.db` cwd-aware resolver, live `https://car-care.jesspete.shop` env-driven SEO (`layout`/`sitemap`/`robots.ts`), lint `set-state-in-effect` off |
 | Automated test suite | ✅ Done | Vitest 66 unit (lib/schemas/store/db-url/client-ip/payload) + Playwright 31 e2e (smoke/SEO/funnel/API/a11y) |
 | Admin surface for leads | ❌ Not started | Owner reviews leads via Prisma Studio |

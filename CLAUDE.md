@@ -130,8 +130,10 @@ Expect `201` + `confirmation`; expect `422` for Sunday dates, missing address on
 - Sandbox pushes use the Paramiko SSH wrapper (no openssh installed):
 
 ```bash
-GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" git push origin main
+GIT_SSH_COMMAND="docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" git push origin main
 ```
+
+(run from the repo root — the wrapper ships at `docs/ssh_git_wrapper_v3.py`; see `docs/how-to-git-push-using-ssh-wrapper_SKILL.md`)
 
 - Never commit `.env`, `worklog.md`, SSH keys, or anything under `upload/`, `tool-results/`, `foundation/`, `skills/`.
 
@@ -168,7 +170,7 @@ Server-computed rules (do not trust the client): Sunday closure (**timezone-safe
 
 ### Data Layer
 
-- Prisma + SQLite; no migrations workflow in use (`db:push`). Two models, `createdAt`-indexed for chronological listing.
+- Prisma + SQLite; `db:push` is the primary workflow. One init migration exists (`prisma/migrations/20260913142416_init/`, from the 2026-09-13 live bootstrap — `docs/start_server_log.txt`); it matches the schema. Two models, `createdAt`-indexed for chronological listing.
 - Booking `priceQuote` is the server-computed quote at submission time (`Int`, USD).
 
 ### Environment Variables
