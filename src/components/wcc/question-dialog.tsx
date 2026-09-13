@@ -48,7 +48,7 @@ export function QuestionDialog() {
       }
       setSent(true);
     } catch {
-      setError("Network error — please check your connection or call (508) 290-7476.");
+      setError(`Network error — please check your connection or call ${BUSINESS.phone}.`);
     } finally {
       setSubmitting(false);
     }

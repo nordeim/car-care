@@ -38,6 +38,7 @@ import { useWccDialogs } from "@/lib/wcc/booking-store";
 import {
   BOOKABLE_SERVICES,
   BUSINESS,
+  CERAMIC_ADDON,
   SERVICE_MODES,
   TIME_SLOTS,
   type VehicleType,
@@ -147,7 +148,7 @@ export function BookingDialog() {
         description: "We'll confirm by text or email shortly.",
       });
     } catch {
-      setSubmitError("Network error — please check your connection or call (508) 290-7476.");
+      setSubmitError(`Network error — please check your connection or call ${BUSINESS.phone}.`);
     } finally {
       setSubmitting(false);
     }
@@ -309,9 +310,9 @@ export function BookingDialog() {
                   <span>
                     <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                       <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
-                      Add 1-Year Ceramic — {usd(200)}{" "}
+                      Add 1-Year Ceramic — {usd(CERAMIC_ADDON.price)}{" "}
                       <span className="text-xs font-normal text-muted-foreground line-through">
-                        {usd(299)}
+                        {usd(CERAMIC_ADDON.regularPrice)}
                       </span>
                     </span>
                     <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
@@ -538,7 +539,7 @@ export function BookingDialog() {
                     ? [{ term: "Address", desc: [form.address, form.city].filter(Boolean).join(", ") }]
                     : []),
                   ...(form.addOnCeramic && service?.allowCeramicAddOn
-                    ? [{ term: "Add-on", desc: "1-Year Ceramic Coating (+$200)" }]
+                    ? [{ term: "Add-on", desc: `1-Year Ceramic Coating (+${usd(CERAMIC_ADDON.price)})` }]
                     : []),
                   ...(form.notes ? [{ term: "Notes", desc: form.notes }] : []),
                 ].map((row) => (
