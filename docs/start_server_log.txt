@@ -1,4 +1,24 @@
-$ rm db/custom.db 
+$ cat .env
+# ─────────────────────────────────────────────────────────────────────────────
+# We Care Car Care (car-care) — environment
+# ─────────────────────────────────────────────────────────────────────────────
+# This file is gitignored (see .gitignore). Copy from .env.example:
+#   cp .env.example .env
+# Never commit secrets or customer PII.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# SQLite database URL for Prisma (schema: prisma/schema.prisma).
+# Relative paths resolve from prisma/ — file:../db/custom.db lands at
+# db/custom.db in the repo root. The app's db.ts normalizes this for the
+# standalone runtime (which chdirs to .next/standalone). Absolute file: URLs
+# also work (e.g. in containers).
+DATABASE_URL=file:../db/custom.db
+
+# Canonical site URL for SEO (metadataBase, OG, sitemap, robots).
+# Live deploy: https://car-care.jesspete.shop
+# Original source (reference): https://wecarecarcare.com
+NEXT_PUBLIC_SITE_URL=https://car-care.jesspete.shop
+SITE_URL=https://car-care.jesspete.shop
 
 $ bun run db:migrate
 $ bun scripts/db.ts migrate dev
@@ -7,34 +27,36 @@ Environment variables loaded from .env
 Prisma schema loaded from prisma/schema.prisma
 Datasource "db": SQLite database "custom.db" at "file:/Home1/project/car-care/db/custom.db"
 
-SQLite database custom.db created at file:/Home1/project/car-care/db/custom.db
+Already in sync, no schema change or pending migration was found.
 
-✔ Enter a name for the new migration: … init
-Applying migration `20260913142416_init`
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 284ms
 
-The following migration(s) have been created and applied from new schema changes:
 
-prisma/migrations/
-  └─ 20260913142416_init/
-    └─ migration.sql
+$ bun run db:push
+$ bun scripts/db.ts db push --accept-data-loss
+[db] DATABASE_URL resolved to file:/Home1/project/car-care/db/custom.db
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "custom.db" at "file:/Home1/project/car-care/db/custom.db"
 
-Your database is now in sync with your schema.
+The database is already in sync with the Prisma schema.
 
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 296ms
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 225ms
 
+$ rm -rf .next/
 
 $ bun run build
 $ next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
 ▲ Next.js 16.3.5 (Turbopack)
 - Environments: .env
-✓ Running next.config.ts took 38ms
+✓ Running next.config.ts took 59ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 746ms
-✓ Finished TypeScript in 3.5s    
-✓ Collecting page data using 3 workers in 1167ms    
-✓ Generating static pages using 3 workers (8/8) in 506ms
-✓ Finalizing page optimization in 2.7s    
+✓ Compiled successfully in 10.7s
+✓ Finished TypeScript in 6.7s    
+✓ Collecting page data using 3 workers in 1260ms    
+✓ Generating static pages using 3 workers (8/8) in 450ms
+✓ Finalizing page optimization in 2.6s    
 
 Route (app)
 ┌ ○ /
@@ -56,14 +78,3 @@ $ NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log
 - Network:       http://0.0.0.0:3005
 ✓ Ready in 0ms
 ✓ Running next.config took 5ms
-
-$ bun run db:push
-$ bun scripts/db.ts db push --accept-data-loss
-[db] DATABASE_URL resolved to file:/Home1/project/car-care/db/custom.db
-Environment variables loaded from .env
-Prisma schema loaded from prisma/schema.prisma
-Datasource "db": SQLite database "custom.db" at "file:/Home1/project/car-care/db/custom.db"
-
-The database is already in sync with the Prisma schema.
-
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 188ms
