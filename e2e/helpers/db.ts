@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
+import { resolveDatabaseUrl } from "../../src/lib/wcc/db-url";
 
 /**
  * Shared DB access for E2E specs. Playwright workers and the global teardown
@@ -11,7 +12,7 @@ import { PrismaClient } from "@prisma/client";
  * the client is created after the env var is guaranteed to be set.
  */
 if (!process.env.DATABASE_URL) {
-  const raw = fs.readFileSync(".env", "utf8");
+  const raw = fs.readFileSync(path.resolve(process.cwd(), ".env"), "utf8");
   const match = raw.match(/^DATABASE_URL\s*=\s*(.+)$/m);
   if (!match) {
     throw new Error("e2e/db: DATABASE_URL is not set and .env has no DATABASE_URL line");
@@ -19,14 +20,11 @@ if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = match[1].trim();
 }
 
-// Mirror src/lib/db.ts: normalize relative SQLite URLs so the E2E worker
-// (cwd = repo root) and the standalone server resolve to the same absolute file.
-if (process.env.DATABASE_URL?.startsWith("file:")) {
-  const filePart = process.env.DATABASE_URL.slice(5);
-  if (!path.isAbsolute(filePart) && filePart.includes("db/custom.db")) {
-    process.env.DATABASE_URL = `file:${path.resolve(process.cwd(), "db/custom.db")}`;
-  }
-}
+// Mirror src/lib/db.ts via the SAME shared resolver the app and the CLI
+// wrapper use: re-anchor relative SQLite URLs so the E2E worker
+// (cwd = repo root) and the standalone server land on one absolute file.
+const resolved = resolveDatabaseUrl(process.env.DATABASE_URL);
+if (resolved) process.env.DATABASE_URL = resolved;
 
 /** Marker used by every row a spec creates — teardown deletes by this prefix. */
 export const TEST_NAME_PREFIX = "PW E2E";
