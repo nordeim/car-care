@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Oswald, Archivo } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { BUSINESS, SERVICE_AREAS } from "@/data/wcc/content";
+import { BUSINESS, FAQS, SERVICE_AREAS } from "@/data/wcc/content";
+import { jsonLdHtml } from "@/lib/wcc/json-ld";
 
 const oswald = Oswald({
   variable: "--font-oswald",
@@ -23,6 +24,11 @@ const siteUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  // Self-referencing canonical — the source site declares one and search
+  // engines expect it on a single-page site (SEO parity G2).
+  alternates: {
+    canonical: "/",
+  },
   title: "Auto Detailing & Ceramic Coating | Framingham MA — We Care Car Care",
   description:
     "Top-rated auto detailing, ceramic coating & paint protection in Framingham and MetroWest MA. 16+ years experience, 5-star rated. Book today!",
@@ -51,10 +57,18 @@ export const metadata: Metadata = {
   },
 };
 
+// Mobile browser chrome picks up the dark canvas so there is no white
+// flash above the fold on Android (SEO parity G4; matches --background).
+export const viewport: Viewport = {
+  themeColor: "#0a0b0d",
+};
+
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "AutoWash",
   name: BUSINESS.name,
+  // Entity disambiguation — the source site declares url too (SEO parity G3).
+  url: siteUrl,
   description:
     "Top-rated auto detailing, ceramic coating, and paint protection services in Framingham and MetroWest Massachusetts. Mobile, shop, and pickup/delivery options.",
   telephone: "+1-508-290-7476",
@@ -95,6 +109,22 @@ const structuredData = {
   })),
 };
 
+// FAQ rich-results markup, generated from the same FAQS array the FAQ
+// section renders — content.ts stays the single source of truth (SEO parity G1;
+// the source site ships an equivalent, but staler, FAQPage block).
+const faqStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQS.map((faq) => ({
+    "@type": "Question",
+    name: faq.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      answerText: faq.answer,
+    },
+  })),
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -105,7 +135,11 @@ export default function RootLayout({
       <body className={`${oswald.variable} ${archivo.variable} font-sans antialiased`}>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdHtml(structuredData) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdHtml(faqStructuredData) }}
         />
         {children}
         <Toaster />
