@@ -1,7 +1,7 @@
 ---
 IMPORTANT: File is read fresh for every conversation. Be brief and practical.
 project_type: nextjs-fullstack
-version: 1.0.0
+version: 1.1.0
 last_updated: 2026-09-13
 ---
 
@@ -9,13 +9,14 @@ last_updated: 2026-09-13
 
 Customer-facing marketing and booking site for **We Care Car Care**, an auto detailing and ceramic coating studio in Framingham, MA (MetroWest Boston). One page sells the services; a 4-step dialog turns visitors into persisted booking requests; a question dialog captures inquiries. No accounts, no admin surface — leads land in SQLite for the owner to action.
 
-**Tech Stack**: Next.js 16.3.5 (App Router, standalone output), React 19.3, TypeScript 5.9, Tailwind CSS 4.3, shadcn/ui (Radix), Prisma 6.19 + SQLite, Zustand 5, Zod 4.6, Vitest 5, bun 1.3. Exact locked versions: `bun pm ls` (or see `car-care_SKILL.md` §2).
+**Tech Stack**: Next.js 16.3.5 (App Router, standalone output), React 19.3, TypeScript 5.9, Tailwind CSS 4.3, shadcn/ui (Radix), Prisma 6.19 + SQLite, Zustand 5, Zod 4.6, Vitest 5, bun 1.3. **Live:** `https://car-care.jesspete.shop` (env-driven SEO). Exact locked versions: `bun pm ls` (or see `car-care_SKILL.md` §2).
 
 ## Core Identity & Purpose
 
 - Single-product local-business site: content is fixed, traffic is organic, the conversion goal is a booking or a phone call.
 - All business facts (prices, service areas, hours, phone) are real and live in `src/data/wcc/content.ts` — the single source of truth.
 - The repo (`nordeim/car-care`) also carries reference material under `docs/` (prompt, skill docs, build archives) that predates the code; treat it as read-only history.
+- **PRD:** `PRD.md` (repo root) — canonical requirements (vision, F1–F5, pricing, API contracts, DoD) derived from `docs/prompt-to-create.md` + `content.ts`.
 
 ## Foundational Principles
 
@@ -41,8 +42,8 @@ Customer-facing marketing and booking site for **We Care Car Care**, an auto det
 
 - App Router, `src/app/` layout; the site is a single route (`page.tsx`) composing server components; dialogs are client islands.
 - Route handlers in `src/app/api/{resource}/route.ts` — POST-only for form submissions.
-- Fonts via `next/font/google` (Oswald, Archivo) exposed as CSS variables; Metadata API + JSON-LD `AutoWash` schema in `layout.tsx` — update structured data together with `content.ts` facts.
-- `next.config.ts`: `output: "standalone"`; `typescript.ignoreBuildErrors: false` (build enforces types); `reactStrictMode: true`.
+- Fonts via `next/font/google` (Oswald, Archivo) exposed as CSS variables; Metadata API + JSON-LD `AutoWash` schema in `layout.tsx` — now **env-driven** (`NEXT_PUBLIC_SITE_URL` / `SITE_URL` → `metadataBase`, OG, `sitemap.ts`, `robots.ts`); fallback `https://car-care.jesspete.shop` (live), original ref `https://wecarecarcare.com`. Update structured data together with `content.ts` facts.
+- `next.config.ts`: `output: "standalone"` (note: standalone `server.js` does `process.chdir(__dirname)` — see Database); `typescript.ignoreBuildErrors: false` (build enforces types); `reactStrictMode: true`.
 
 ### React 19 / TypeScript
 
@@ -69,10 +70,10 @@ Customer-facing marketing and booking site for **We Care Car Care**, an auto det
 
 ```bash
 bun install
-cp .env.example .env   # DATABASE_URL="file:../db/custom.db" (relative paths resolve from prisma/)
+cp .env.example .env   # DATABASE_URL="file:../db/custom.db" (relative to prisma/) + NEXT_PUBLIC_SITE_URL/SITE_URL="https://car-care.jesspete.shop"
 bun run db:generate
-bun run db:push
-bun run dev
+bun run db:push         # db.ts normalizes to absolute at runtime for standalone chdir trap
+bun run dev             # http://localhost:3000 (live SEO still points to https://car-care.jesspete.shop)
 ```
 
 ### Build Commands
@@ -91,7 +92,7 @@ bun run dev
 
 ### Database (Prisma + SQLite)
 
-- Models: `Booking`, `Question` (`prisma/schema.prisma`). Client singleton in `src/lib/db.ts` (query logging dev-only).
+- Models: `Booking`, `Question` (`prisma/schema.prisma`). Client singleton in `src/lib/db.ts` (query logging dev-only, **cwd-aware** absolute resolver for standalone — `file:../db/custom.db` is portable for `db:push` but runtime resolves to repo-root absolute whether cwd is repo root or `.next/standalone`; `e2e/helpers/db.ts` mirrors this).
 - Inspect data with `bunx prisma studio`. `db/custom.db` is a **runtime artifact, gitignored** — never commit it (customer PII).
 
 ## Testing Strategy
@@ -173,9 +174,11 @@ Server-computed rules (do not trust the client): Sunday closure (**timezone-safe
 
 ### Environment Variables
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `DATABASE_URL` | SQLite file URL for Prisma (relative to `prisma/`) | `file:../db/custom.db` |
+| Variable | Required | Purpose | Example |
+|----------|----------|---------|---------|
+| `DATABASE_URL` | Yes | SQLite file URL for Prisma (relative to `prisma/`; runtime normalized to absolute for standalone) | `file:../db/custom.db` |
+| `NEXT_PUBLIC_SITE_URL` | Yes (SEO) | Canonical site URL for `metadataBase`/OG/`sitemap`/`robots` (client + server) | `https://car-care.jesspete.shop` |
+| `SITE_URL` | No (server fallback) | Server fallback for sitemap/robots when `NEXT_PUBLIC_` not set | `https://car-care.jesspete.shop` |
 
 ## Anti-Patterns to Avoid
 

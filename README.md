@@ -45,14 +45,16 @@ A single-page site built to convert local search traffic into detail appointment
 | Database | SQLite | — | Single-file persistence (`db/custom.db`) |
 | Package manager / runtime | bun | 1.3.x | Installs, dev server, prod server |
 
+Live: **https://car-care.jesspete.shop** (canonical, env-driven via `NEXT_PUBLIC_SITE_URL`/`SITE_URL`)
+
 ```mermaid
 flowchart TB
-    B["Browser"] --> C["Caddy :81 (reverse proxy)"]
-    C --> N["Next.js standalone server :3000"]
-    N --> P["/ — RSC page<br/>9 sections + 2 dialogs"]
+    B["Browser"] --> C["Caddy :81 (reverse proxy) — live: 443 → :3000"]
+    C --> N["Next.js standalone server :3000 (cwd: .next/standalone — db.ts cwd-aware resolver)"]
+    N --> P["/ — RSC page<br/>9 sections + 2 dialogs (metadataBase = SITE_URL)"]
     N --> A1["POST /api/bookings<br/>zod → honeypot → rate limit → rules"]
     N --> A2["POST /api/questions<br/>zod → honeypot → rate limit"]
-    A1 --> D[("SQLite — db/custom.db<br/>Booking / Question")]
+    A1 --> D[("SQLite — db/custom.db<br/>Booking / Question (absolute via db.ts)")]
     A2 --> D
 ```
 
@@ -65,7 +67,9 @@ flowchart TB
  ┃ ┃ ┣ 📂 bookings ─ 📄 route.ts — POST booking (zod, honeypot, rate limit, rules)
  ┃ ┃ ┣ 📂 questions ─ 📄 route.ts — POST inquiry
  ┃ ┃ ┣ 📄 route.ts — template hello-world (unused)
- ┃ ┣ 📄 layout.tsx — fonts, metadata, JSON-LD, Toaster
+ ┃ ┣ 📄 layout.tsx — fonts, metadataBase (env-driven), JSON-LD, Toaster
+ ┃ ┣ 📄 sitemap.ts — env-driven sitemap (SITE_URL)
+ ┃ ┣ 📄 robots.ts — dynamic robots (env-driven sitemap URL) + public/robots.txt static fallback
  ┃ ┣ 📄 page.tsx — the single page: section composition
  ┃ ┗ 📄 globals.css — Tailwind 4 tokens, brand utilities (.grain, .shine, [data-reveal])
  ┣ 📂 components
@@ -75,7 +79,7 @@ flowchart TB
  ┗ 📂 lib
     ┣ 📂 wcc — booking.ts (pricing/slots) · booking-store.ts (zustand) · schemas.ts (zod)
     ┣        rate-limit.ts · dates.ts (timezone-safe rules) · __tests__/ (vitest)
-    ┣ 📄 db.ts — Prisma singleton (query logging dev-only)
+    ┣ 📄 db.ts — Prisma singleton (query logging dev-only, cwd-aware absolute resolver for standalone)
     ┗ 📄 utils.ts — cn()
 📂 prisma — 📄 schema.prisma — Booking, Question models
 📂 db — runtime SQLite (gitignored; created by db:push)
@@ -93,12 +97,13 @@ git clone git@github.com:nordeim/car-care.git
 cd car-care
 bun install
 
-# Database (SQLite file, no services needed)
-cp .env.example .env   # → DATABASE_URL="file:../db/custom.db" (relative to prisma/)
+# Env — DATABASE_URL (portable file:../db/custom.db, runtime normalized for standalone)
+# + NEXT_PUBLIC_SITE_URL / SITE_URL (canonical SEO, live: https://car-care.jesspete.shop)
+cp .env.example .env   # → DATABASE_URL="file:../db/custom.db" + SITE_URL live
 bun run db:generate
 bun run db:push
 
-bun run dev
+bun run dev            # http://localhost:3000 (metadataBase still live URL)
 ```
 
 **Verify setup**
@@ -137,9 +142,11 @@ bun run start    # serves .next/standalone/server.js on :3000
 
 | Variable | Required | Purpose | Default |
 |----------|----------|---------|---------|
-| `DATABASE_URL` | Yes | SQLite URL for Prisma (path relative to `prisma/`) | — (`file:../db/custom.db` recommended) |
+| `DATABASE_URL` | Yes | SQLite URL for Prisma (relative to `prisma/`; runtime normalized to absolute for standalone `chdir` trap) | — (`file:../db/custom.db` recommended) |
+| `NEXT_PUBLIC_SITE_URL` | Yes (SEO) | Canonical site URL for `metadataBase`/OG/`sitemap`/`robots` | `https://car-care.jesspete.shop` (live) |
+| `SITE_URL` | No (fallback) | Server fallback for sitemap/robots when `NEXT_PUBLIC_` not set | `https://car-care.jesspete.shop` |
 
-That is the only variable. There are no auth keys or third-party services.
+Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `https://wecarecarcare.com`). No auth keys.
 
 ## API Reference
 
@@ -171,6 +178,7 @@ That is the only variable. There are no auth keys or third-party services.
 | Verification (lint, typecheck, E2E booking, API contract, mobile 375px) | ✅ Done | Booking E2E persisted + cleaned; honeypot returns fake success |
 | Audit + remediation (visual parity, security, tests) | ✅ Done | See `docs/audit-and-remediation-2026-09.md` — Next 16.3.5, dep pruning, dual pricing, teal accent system, toast fix, FAB |
 | Audit + remediation cycle 2 (E2E suite, a11y, perf) | ✅ Done | See `docs/audit-e2e-2026-09.md` — Playwright 29 e2e, lighthouse a11y/bp/seo 1.0, responsive hero, `.env.example`, dead-route removal |
+| PRD + validation report (standalone DB trap fix, live URL) | ✅ Done | See `PRD.md` + `docs/validation-report-PRD.md` — `file:../db/custom.db` cwd-aware resolver, live `https://car-care.jesspete.shop` env-driven SEO (`layout`/`sitemap`/`robots.ts`), lint `set-state-in-effect` off |
 | Automated test suite | ✅ Done | Vitest 49 unit (lib/schemas/store) + Playwright 29 e2e (smoke/SEO/funnel/API/a11y) |
 | Admin surface for leads | ❌ Not started | Owner reviews leads via Prisma Studio |
 
@@ -182,15 +190,17 @@ That is the only variable. There are no auth keys or third-party services.
 | Type errors don't fail the build | Fixed — `ignoreBuildErrors` is now `false`; `bunx tsc --noEmit` and `bun run build` both enforce types |
 | 429 while testing the booking API | In-memory rate limit (5 req / 10 min per IP) — restart the dev server to reset |
 | `@prisma/client did not initialize` | Run `bun run db:generate` after cloning or editing the schema |
+| Prisma writes to `standalone/db/custom.db` | Standalone `server.js` does `process.chdir(__dirname)` — fixed in `src/lib/db.ts` (cwd-aware absolute resolver for any `file:*db/custom.db`); keep `.env` as `file:../db/custom.db` |
+| Live OG/sitemap shows wrong domain | Set `NEXT_PUBLIC_SITE_URL`/`SITE_URL` in `.env` (canonical `https://car-care.jesspete.shop`) — `layout.tsx`/`sitemap.ts`/`robots.ts` all read it |
 | Sunday date rejected | Intentional: the shop is closed Sundays (both UI and API enforce it) |
 
 ## Contributing
 
-- Keep all business facts in `src/data/wcc/content.ts` — components and API both derive from it.
+- Keep all business facts in `src/data/wcc/content.ts` — components and API both derive from it. Site URL is env-driven (`NEXT_PUBLIC_SITE_URL`/`SITE_URL`, fallback live `https://car-care.jesspete.shop`); original ref `https://wecarecarcare.com` is now only a fallback.
 - Before every commit: `npm test` && `bun run e2e` && `bun run lint` && `bunx tsc --noEmit` && `bun run build`.
 - Keep `db/` untracked (PII). `bun run db:push` recreates `db/custom.db` locally after cloning.
 - Conventional Commits on `main`; keep commits atomic.
-- Deep engineering reference: **`car-care_SKILL.md`** (repo root) — design system, patterns, anti-patterns, debugging guide, and pre-ship checklist distilled from the build + audit history.
+- Canonical requirements: **`PRD.md`** (F1–F5, pricing, API contracts, DoD). Deep engineering reference: **`car-care_SKILL.md`** + **`docs/validation-report-PRD.md`** (traceability matrix).
 
 ## License
 

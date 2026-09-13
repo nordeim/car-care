@@ -33,12 +33,16 @@ Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.
 - **Rate limiting**: `src/lib/wcc/rate-limit.ts` — `SlidingWindowRateLimiter` (5 req / 10 min per IP, prunes stale keys). Shared instances used by both routes.
 - **Dialog state**: zustand store `src/lib/wcc/booking-store.ts` (`useWccDialogs`), **not** React Context. `openBooking(serviceKey?, { addOnCeramic?: boolean })` — the second arg powers the "Smart Add-On" preselect.
 - **APIs**: `src/app/api/{bookings,questions}/route.ts` — POST-only, zod validation → honeypot check → rate limit → business rules (Sunday closed; address required for mobile/pickup) → Prisma insert. Honeypot field is `company`: filled ⇒ fake `201` success, no row written.
-- **DB**: SQLite at `db/custom.db` (**gitignored — never commit customer PII**), `DATABASE_URL` in `.env`. Prisma client is a `globalThis` singleton; `log: ['query']` runs in dev only.
+- **DB**: SQLite at `db/custom.db` (**gitignored — never commit customer PII**), `DATABASE_URL` in `.env`. Prisma client is a `globalThis` singleton; `log: ['query']` runs in dev only. `src/lib/db.ts` normalizes `file:../db/custom.db` (relative to `prisma/`) to an absolute repo-root path at runtime to survive the standalone `process.chdir(__dirname)` trap (`.next/standalone/server.js` chdirs to `standalone`); `e2e/helpers/db.ts` mirrors this. Live URL is `https://car-care.jesspete.shop` (env-driven via `NEXT_PUBLIC_SITE_URL`/`SITE_URL`).
 - **Route handler** `src/app/api/route.ts` is template scaffolding (hello world) — unused.
 
 ## Styling
 
 Tailwind **v4 CSS-first**: tokens are `@theme inline` + `:root` in `src/app/globals.css` (no `tailwind.config.ts` — it was removed with the Tailwind 3 leftovers). Site is dark-first (`<html className="dark">`, hardcoded). Fonts: Oswald (display, `font-display` class) + Archivo (body) via `next/font`, CSS vars `--font-oswald` / `--font-archivo`. Two-tone accent system: amber `--primary` `#f2a61c` for CTAs/numbers, teal `--accent-teal` `#5eead4` for keyword highlights (`text-accent-teal`).
+
+## Env & Live Deploy
+
+Live deploy: **`https://car-care.jesspete.shop`** (canonical). SEO is env-driven: `NEXT_PUBLIC_SITE_URL` / `SITE_URL` in `.env` (fallback `https://car-care.jesspete.shop`) feeds `metadataBase` in `layout.tsx`, `sitemap.ts`, and dynamic `robots.ts`. Static `public/robots.txt` is a fallback (aligned to live Sitemap). Original source reference remains `https://wecarecarcare.com`.
 
 ## Tests
 
@@ -49,6 +53,9 @@ Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production b
 ## Gotchas
 
 - `next.config.ts` now has `typescript.ignoreBuildErrors: false` and `reactStrictMode: true` — the build enforces types; keep `tsc --noEmit` clean anyway (it checks more than the build).
+- ESLint now has `react-hooks/set-state-in-effect: off` — intentional setState in effect for `booking-dialog.tsx` dialog reset and `carousel.tsx` select (see lint gate).
+- **Standalone DB trap:** `src/lib/db.ts` does `process.chdir(__dirname)` in `.next/standalone/server.js`, so naive `file:../db/custom.db` (relative to `prisma/`) would resolve to `standalone/db/custom.db` at runtime. The client now normalizes any `file:*db/custom.db` to an absolute repo-root path (cwd-aware: detects `.next/standalone` and walks up). Keep `.env` as `file:../db/custom.db` (portable); both CLI (`db:push`) and runtime (dev + standalone + E2E) now share one file.
+- **Site URL:** SEO (`metadataBase`, OG, `sitemap.ts`, `robots.ts`) reads `NEXT_PUBLIC_SITE_URL` / `SITE_URL` (fallback live `https://car-care.jesspete.shop`). `public/robots.txt` is now a static fallback — the dynamic `src/app/robots.ts` is the source of truth.
 - ESLint ignores: `foundation/**`, `scripts/**`, `examples/**`, `skills`, plus build dirs. Many rules are off (sandbox template defaults).
 - `foundation/`, `upload/`, `tool-results/`, `skills/`, `download/`, `db/` are sandbox-local or runtime artifacts and gitignored — never import from or commit them.
 - `examples/websocket/` and `tests/*.sh` are template scaffolding, unrelated to the site.

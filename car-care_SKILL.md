@@ -10,9 +10,9 @@ description: >
   booking dialog, and the test pyramid that locks it all down: 49 Vitest
   unit tests (timezone-verified) plus a 29-test Playwright e2e suite that
   drives the standalone production build.
-version: 1.2.0
+version: 1.3.0
 last_updated: 2026-09-13
-project_state: 49/49 unit tests green (UTC + America/New_York + Asia/Singapore) · 29/29 e2e green (standalone build) · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · verified 2026-09-13
+project_state: 49/49 unit tests green (UTC + America/New_York + Asia/Singapore) · 29/29 e2e green (standalone build) · lint clean · tsc --noEmit clean (src + e2e) · bun audit --prod clean · lighthouse a11y/bp/seo 1.0, perf 0.80 · live https://car-care.jesspete.shop (env-driven SEO) · standalone DB cwd-aware fix · verified 2026-09-13
 tags:
   - nextjs16
   - react19
@@ -129,7 +129,7 @@ All versions are **locked versions from `bun.lock`** (verified 2026-09-13 via `b
 | AI SDK | `z-ai-web-dev-sdk` | 0.0.18 | Used only by tracked `scripts/` (image gen, VLM checks) — not by the app runtime. |
 | Package manager / runtime | bun | 1.3+ | `bun.lock` is the source of truth; Node 24 + npm also work for `npm test`. |
 
-**Deployment shape:** `output: "standalone"` — `bun run build` also copies `.next/static` and `public` into `.next/standalone/`; `bun run start` serves it on :3000 behind Caddy (`:81` in the sandbox, per `Caddyfile`). Single bun process; the only in-process state is the rate-limiter `Map` (deliberately ephemeral, ADR-005).
+**Deployment shape:** `output: "standalone"` — `bun run build` also copies `.next/static` and `public` into `.next/standalone/`; `bun run start` serves it on :3000 behind Caddy (`:81` in the sandbox, `443` live per `https://car-care.jesspete.shop`, per `Caddyfile`). Single bun process; the only in-process state is the rate-limiter `Map` (deliberately ephemeral, ADR-005). **Live SEO** is env-driven: `NEXT_PUBLIC_SITE_URL`/`SITE_URL` (fallback live) feeds `metadataBase`/`OG`/`sitemap.ts`/`robots.ts` — build verified `og:image` is `https://car-care.jesspete.shop/...`.
 
 **What is intentionally NOT here:** no auth (public booking site), no CMS (content is a typed TS module, ADR-003), no analytics, no third-party scripts, no i18n, no CI yet (manual §11 gate; a minimal GitHub Actions lint+tsc+test+e2e is the natural first addition), no visual-regression snapshots (deliberate — maintenance-heavy while the design evolves).
 
@@ -144,15 +144,15 @@ git clone git@github.com:nordeim/car-care.git
 cd car-care
 bun install                      # or: npm install (bun.lock is canonical)
 
-# Database — SQLite file, no services needed
-cp .env.example .env   # → DATABASE_URL="file:../db/custom.db"
+# Env — DATABASE_URL (portable file:../db/custom.db, runtime cwd-aware) + site URL
+cp .env.example .env   # → DATABASE_URL="file:../db/custom.db" + NEXT_PUBLIC_SITE_URL/SITE_URL="https://car-care.jesspete.shop"
 bun run db:generate              # regenerate Prisma client (needed after clone/schema edits)
 bun run db:push                  # create/push schema to db/custom.db (--accept-data-loss is in the script)
 
-bun run dev                      # http://localhost:3000, logs tee'd to dev.log
+bun run dev                      # http://localhost:3000 (metadataBase still live URL)
 ```
 
-> ⚠️ **The `DATABASE_URL` path trap:** the URL is resolved **relative to `prisma/`**, not the repo root. `file:../db/custom.db` → `<repo>/db/custom.db`. Using `file:./custom.db` silently creates `prisma/custom.db`. This was verified empirically and is the single most common fresh-clone misconfiguration.
+> ⚠️ **The `DATABASE_URL` path trap + standalone `chdir` trap:** the URL is resolved **relative to `prisma/`** for the CLI, not the repo root. `file:../db/custom.db` → `<repo>/db/custom.db`. Using `file:./custom.db` silently creates `prisma/custom.db`. Additionally, the standalone server (`.next/standalone/server.js`) does `process.chdir(__dirname)` so cwd becomes `.next/standalone` at runtime — a naive relative `file:../db/custom.db` from repo root would then resolve to `standalone/db/custom.db`. `src/lib/db.ts` now normalizes any `file:*db/custom.db` to an absolute repo-root path (cwd-aware: detects `.next/standalone` and walks up; `e2e/helpers/db.ts` mirrors). Keep `.env` as `file:../db/custom.db` — both CLI and runtime now share `db/custom.db`.
 
 ### 3.2 Verification of a working setup
 
@@ -172,7 +172,8 @@ bun run dev                      # http://localhost:3000, logs tee'd to dev.log
 | `vitest.config.ts` | Tests | `environment: "node"` (no jsdom — lib-level tests only), `include: src/**/*.test.ts(x)`, excludes `foundation/examples/skills/.next`, `@/` alias → `./src`. |
 | `postcss.config.mjs` | CSS pipeline | `@tailwindcss/postcss` only. |
 | `prisma/schema.prisma` | Data model | SQLite datasource via `env("DATABASE_URL")`; `Booking` + `Question` models (§20). |
-| `.env` | Environment | Exactly **one** variable: `DATABASE_URL`. Gitignored; commit the `.env.example` template instead (`.gitignore` carries `!.env.example`). |
+| `.env` | Environment | **Three** variables: `DATABASE_URL` (SQLite, gitignored), `NEXT_PUBLIC_SITE_URL` + `SITE_URL` (canonical SEO URL, live `https://car-care.jesspete.shop`; fallback live). See also `src/app/layout.tsx` (`metadataBase`), `sitemap.ts`, `robots.ts`. Gitignored; commit `.env.example` instead (`.gitignore` carries `!.env.example`). |
+| `src/app/robots.ts` + `public/robots.txt` | SEO robots | Dynamic `robots.ts` (env-driven `sitemap: ${siteUrl}/sitemap.xml`) is the source of truth; `public/robots.txt` is the static fallback (aligned to live URL). |
 | `components.json` | shadcn config | Registry paths for adding new primitives via CLI. |
 
 ### 3.4 Scripts (`package.json`)
@@ -379,7 +380,7 @@ Full pattern in §15.6. Essentials: `setPointerCapture` on the divider for drag 
 
 ### 7.3 Imagery (`public/images/`, all AI-generated, WebP)
 
-`hero-car.webp` (1344×768, OG image too), `exterior-clean.webp` (essential card), `detail-action.webp` (premium card + final CTA backdrop), `interior-clean.webp`, `interior-detail.webp`, `ceramic-beads.webp` (popular tier band). Regenerate via `scripts/gen-images.sh` + `scripts/optimize-images.mjs` (sharp → WebP). The repo's OG card references `/images/hero-car.webp` with `metadataBase https://wecarecarcare.com`.
+`hero-car.webp` (1344×768, OG image too), `exterior-clean.webp` (essential card), `detail-action.webp` (premium card + final CTA backdrop), `interior-clean.webp`, `interior-detail.webp`, `ceramic-beads.webp` (popular tier band). Regenerate via `scripts/gen-images.sh` + `scripts/optimize-images.mjs` (sharp → WebP). The OG card references `/images/hero-car.webp` with **env-driven** `metadataBase` (`NEXT_PUBLIC_SITE_URL`/`SITE_URL`, fallback `https://car-care.jesspete.shop`; original ref `https://wecarecarcare.com`).
 
 ---
 
@@ -501,7 +502,8 @@ Every entry below actually happened in this repo's history and either has a test
 |---|---|---|
 | `bun run start` serves missing styles/images | standalone dir lacks static assets | Run `bun run build` (the script copies `.next/static` + `public` into `.next/standalone/`), not bare `next build` |
 | `@prisma/client did not initialize yet` | client not generated after clone/schema edit | `bun run db:generate` |
-| Prisma writes to the wrong db file | `DATABASE_URL` resolves **relative to `prisma/`** | Use `file:../db/custom.db` (§3.1 trap) |
+| Prisma writes to `standalone/db/custom.db` | Standalone `server.js` does `process.chdir(__dirname)` so cwd becomes `.next/standalone` | Fixed in `src/lib/db.ts` (cwd-aware absolute resolver for any `file:*db/custom.db`; keep `.env` as `file:../db/custom.db`) — see §3.1 trap |
+| Prisma writes to `prisma/custom.db` | `DATABASE_URL` resolves **relative to `prisma/`** for CLI | Use `file:../db/custom.db` (§3.1 trap) |
 | `429` while testing the booking API | in-memory limiter: 5 req / 10 min per IP | Restart the dev server to reset (the `Map` is per-process) |
 | Sunday date rejected | intentional — shop closed Sundays (UI **and** API both enforce) | Not a bug |
 | `tsc --noEmit` errors in files you never touched | `include` reverted to `**/*.ts` | Restore the §3.3 scoped include list |
