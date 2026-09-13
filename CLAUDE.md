@@ -69,7 +69,7 @@ Customer-facing marketing and booking site for **We Care Car Care**, an auto det
 
 ```bash
 bun install
-echo 'DATABASE_URL="file:../db/custom.db"' > .env   # relative paths resolve from prisma/
+cp .env.example .env   # DATABASE_URL="file:../db/custom.db" (relative paths resolve from prisma/)
 bun run db:generate
 bun run db:push
 bun run dev

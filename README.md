@@ -94,7 +94,7 @@ cd car-care
 bun install
 
 # Database (SQLite file, no services needed)
-echo 'DATABASE_URL="file:../db/custom.db"' > .env   # relative to prisma/ → resolves to db/custom.db
+cp .env.example .env   # → DATABASE_URL="file:../db/custom.db" (relative to prisma/)
 bun run db:generate
 bun run db:push
 
