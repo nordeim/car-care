@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://wecarecarcare.com/sitemap.xml
+Sitemap: https://car-care.jesspete.shop/sitemap.xml

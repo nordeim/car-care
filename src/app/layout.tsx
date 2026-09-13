@@ -16,8 +16,13 @@ const archivo = Archivo({
   weight: ["400", "500", "600", "700"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  process.env.SITE_URL ??
+  "https://car-care.jesspete.shop";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://wecarecarcare.com"),
+  metadataBase: new URL(siteUrl),
   title: "Auto Detailing & Ceramic Coating | Framingham MA — We Care Car Care",
   description:
     "Top-rated auto detailing, ceramic coating & paint protection in Framingham and MetroWest MA. 16+ years experience, 5-star rated. Book today!",
