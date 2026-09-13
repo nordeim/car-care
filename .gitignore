@@ -62,3 +62,5 @@ server.log
 # Deliverables directory (user downloads, not source)
 /download/*
 !/download/README.md
+# internal multi-agent worklog
+/worklog.md
