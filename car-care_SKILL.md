@@ -8,9 +8,9 @@ description: >
   without re-learning its hard-won lessons: timezone-safe date rules, honeypot
   + sliding-window bot defense, dark-first two-tone design system, 4-step
   booking dialog, and the 49-test Vitest suite that locks it all down.
-version: 1.0.0
+version: 1.1.0
 last_updated: 2026-09-13
-project_state: 49/49 tests green (UTC + America/New_York + Asia/Singapore) · lint clean · tsc --noEmit clean · 0 critical vulns · main @ 7a4a4e0
+project_state: 49/49 tests green (UTC + America/New_York + Asia/Singapore) · lint clean · tsc --noEmit clean · bun audit --prod clean (0 runtime findings) · verified 2026-09-13
 tags:
   - nextjs16
   - react19
@@ -486,7 +486,7 @@ Every entry below actually happened in this repo's history and either has a test
 
 **Symptom:** `bun audit` reported 90 vulnerabilities (3 critical) in a site with ~20 real imports.
 **Root cause:** template scaffolding shipped `next-auth` (zero imports, CRITICAL homoglyph advisory), `next@16.1.3` (in-advisory-range), and ~40 other unused packages dragging vulnerable transitive chains.
-**Fix:** upgrade `next` to 16.3.5; remove 44 unused deps + 39 unused ui files (ADR-008). Result: 0 critical; remaining findings are dev-tool chains (eslint/babel/prisma CLI) that never enter the standalone runtime.
+**Fix:** upgrade `next` to 16.3.5; remove 44 unused deps + 39 unused ui files (ADR-008); then in the 2026-09-13 follow-up move `prisma` CLI to devDependencies and pin `defu@6.1.7` / `deepmerge-ts@8.0.2` / `baseline-browser-mapping@2.11.23` via `overrides`. Result: `bun audit --prod` reports zero findings; the full-audit remainder is dev-tool chains (eslint/vitest/tailwind) that never enter the standalone runtime.
 **Guard:** before adding ANY dependency, `rg` for real usage; before upgrading, read the advisory range.
 
 ---
@@ -536,7 +536,7 @@ bun run build                 # standalone build + asset copy; type errors fail 
 ### 11.3 Security & hygiene
 
 - [ ] `git status` clean; **no `.env`, no `db/*.db`, no `worklog.md`, no PII** in the commit (`git ls-files | grep -E '\.db$'` must be empty)
-- [ ] `bun audit` → 0 critical in runtime deps (dev-tool chains acceptable)
+- [ ] `bun audit --prod` → no findings; full `bun audit` → 0 critical (dev-tool chains acceptable)
 - [ ] No new dependency without an `rg` usage check
 - [ ] Rate limit + honeypot + zod validation intact on both routes (they are covered by tests — a red test here is a broken defense)
 
@@ -980,7 +980,7 @@ Honeypot on either route: non-empty `company` → fake `201`, no row written. Su
 
 - Visual/UX: agent-browser desktop 1440×900 + mobile 390×844 against `https://wecarecarcare.com/`, ~60 screenshots, VLM section-by-section comparisons, animation verification (reveals, drag slider 50→79, carousel, accordion, shine sweep via computed styles).
 - Findings: 1 defect (D1 arrows-over-text) + 8 fidelity gaps (V1 missing teal system, V2 hidden SUV price, V3 bare dialog rows, V4/V5 plain CTA/FAQ, V6 hero contrast, V7 no FAB, V9 no add-on preselect) — all fixed; 4 deliberate divergences documented.
-- Code review: `bun audit` 90 findings (3 critical — next-auth homoglyph, next 16.1.3 advisories) → next@16.3.5, 44 deps + 39 ui files removed; 135 tsc errors → 0 (scoped include + enforced build); `db/custom.db` untracked; Prisma logs dev-only; toast wiring fixed (C11); icon + sitemap added.
+- Code review: `bun audit` 90 findings (3 critical — next-auth homoglyph, next 16.1.3 advisories) → next@16.3.5, 44 deps + 39 ui files removed; 135 tsc errors → 0 (scoped include + enforced build); `db/custom.db` untracked; Prisma logs dev-only; toast wiring fixed (C11); icon + sitemap added. 2026-09-13 supply-chain follow-up: prisma CLI → devDependencies + overrides (defu 6.1.7, deepmerge-ts 8.0.2, baseline-browser-mapping 2.11.23) → production dep graph audit-clean.
 - Tests: 0 → **49** (5 files) via TDD; new modules `dates.ts` / `rate-limit.ts` / `schemas.ts` extracted + covered.
 - Full audit trail with per-task acceptance criteria: `docs/audit-and-remediation-2026-09.md`.
 - Open (documented, not fixed): slot capacity/double-booking check, real chat widget, gallery/about sections, next/image migration, component/E2E tests, CI.

@@ -1,4 +1,4 @@
-# We Care Car Care (car-care) — Master Project Architecture Document (PAD) v1.1.1
+# We Care Car Care (car-care) — Master Project Architecture Document (PAD) v1.1.2
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
@@ -9,8 +9,9 @@
 
 ---
 
-#### Revision Block — v1.1.1 (Tracked Changes)
+#### Revision Block — v1.1.2 (Tracked Changes)
 
+- `[MA]` v1.1.2 — supply-chain hardening: `prisma` CLI moved to `devDependencies` (never runtime-imported — only `@prisma/client` via `src/lib/db.ts`); `overrides` added to `package.json` pinning `defu@6.1.7`, `deepmerge-ts@8.0.2`, `baseline-browser-mapping@2.11.23`; `bun audit --prod` now reports zero findings (full-audit remainder is dev-tooling chains only — 24 findings, 0 critical); pre-deploy checklist + known-issues table updated; `car-care_SKILL.md` refreshed to v1.1.0 (project state, S1–S3 follow-up, audit history). All gates re-verified: 49/49 tests × 3 timezones, lint + tsc clean, build green, E2E booking + toast re-confirmed.
 - `[MA]` v1.1.1 — dependency-version realignment (React 19.3.0, Tailwind 4.3.3, Zod 4.6.4, Vitest 5.0.0, Prisma 6.19.3, ESLint 9.39.5 — corrected against `bun.lock` after the v1.1.0 upgrades left stale numbers); ADR-001 decision text updated to reflect that all `wcc/` components became `"use client"` islands in v1.1.0; added `car-care_SKILL.md` (v1.0.0, 1,017 lines) as a companion document — distilled via the six-phase `to-distill-project-into-skill` process with all facts verified against the working tree.
 - `[MA]` v1.1.0 — post-audit remediation: Next 16.3.5 security upgrade, 44 unused dependencies + 39 unused ui primitives pruned, tsconfig scoping + build type enforcement, `db/custom.db` untracked, Vitest suite (49 tests) introduced, timezone-safe date rules, shared rate-limit/schemas modules, toast wiring fix (sonner), two-tone amber+teal accent system, dual sedan/SUV pricing in cards, package card imagery, FAQ card styling, final-CTA imagery, mobile call FAB, app icon + sitemap. Full audit trail in `docs/audit-and-remediation-2026-09.md`.
 - `[CA]` Known-issues table includes honest gaps rather than aspirational claims.
@@ -558,7 +559,7 @@ No coverage tooling configured. The de facto gate is `npm test` + §8.2 executed
 - [ ] `bun run lint` clean
 - [ ] `bunx tsc --noEmit` clean
 - [ ] `bun run build` succeeds (including static/public copy into `.next/standalone/`)
-- [ ] `bun audit` shows 0 critical / 0 runtime-dependency findings
+- [ ] `bun audit --prod` shows no findings (full audit: 0 critical; dev-tool chains acceptable)
 - [ ] Manual booking E2E passed, confirmation code + toast received
 - [ ] Honeypot returns fake `201`, zero rows written
 - [ ] Test rows removed from `db/custom.db`
@@ -652,7 +653,7 @@ Optional inspection: `bunx prisma studio` (browse Booking/Question rows at `http
 | LOW | No slot capacity / double-booking check (same date+time bookable unlimited) | Potential scheduling collisions resolved manually by the owner | Open — needs an availability rule set; slots count is a static placeholder |
 | INFO | No admin/lead-management surface; `Booking.status` stays `"pending"` forever | Owner triages via Prisma Studio (by design for now) | Accepted — roadmap candidate |
 | INFO | Rate limiter trusts the `X-Forwarded-For` chain | Fine behind Caddy; spoofable if `:3000` were exposed directly | Accepted — keep the proxy in front |
-| INFO | Dev-tooling transitive advisories remain in `bun audit` (eslint/babel/prisma CLI chains) | None reach the standalone runtime bundle | Accepted — upstream semver pins; revisit when parents publish fixes |
+| INFO | Dev-tooling transitive advisories remain in the full `bun audit` (eslint/vitest/tailwind chains: picomatch, flatted, browserslist) | None reach the standalone runtime bundle; the production dependency graph is fully clean (`bun audit --prod`: 0 findings, v1.1.2 overrides) | Accepted — upstream semver pins; revisit when parents publish fixes |
 
 ---
 

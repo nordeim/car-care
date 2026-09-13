@@ -222,8 +222,24 @@ All phases executed. Verification evidence:
 - **Tests:** 49/49 green under `TZ=UTC`, `TZ=America/New_York`, `TZ=Asia/Singapore` (timezone-safety regression proof for B2).
 - **Lint / types:** `eslint .` clean; `tsc --noEmit` exits 0 (was 135+ errors from unscoped reference dirs).
 - **Build:** production build succeeds with `ignoreBuildErrors: false`; routes include `/icon.svg` and `/sitemap.xml`.
-- **Security:** `bun audit` 90 findings (3 critical, 48 high) → 27 findings (0 critical; all remaining are dev-tooling chains — eslint/babel/prisma CLI — that never enter the standalone runtime bundle). `next@16.1.3 → 16.3.5`; `next-auth` + 43 other unused deps removed; 39 unused ui primitives removed.
+- **Security:** `bun audit` 90 findings (3 critical, 48 high) → 24 findings (0 critical; 0 in the production dependency graph — `bun audit --prod` reports "No vulnerabilities found"; all remaining are dev-tooling chains — eslint/vitest/tailwind — that never enter the standalone runtime bundle). `next@16.1.3 → 16.3.5`; `next-auth` + 43 other unused deps removed; 39 unused ui primitives removed; `prisma` CLI moved to devDependencies + 3 transitive overrides (see follow-up below).
 - **Toast bug (C11):** E2E-verified — booking submission now renders the sonner "Booking request received" toast.
 - **Visual (agent-browser + VLM):** dual sedan+SUV prices visible in all cards without interaction; card image bands render; teal keyword highlights present (hero eyebrow, pricing/ceramic/interior/difference/FAQ headings); FAQ cards + sentence case; final CTA has photo backdrop + rating pill + 2 buttons; carousel arrows live in side gutters with zero text overlap (D1 fixed); mobile call FAB appears after hero scroll; booking dialog shows per-service summaries + Most Popular badge; Smart Add-On preselects the ceramic add-on (verified in DOM + VLM).
 - **Docs:** README, AGENTS.md, CLAUDE.md, Project_Architecture_Document.md (v1.1.0 revision block, ADR-008/009, updated tables) aligned with the remediated codebase.
 - **Out-of-scope items** (C10 slot capacity, real chat widget, gallery/about sections, next/image migration) remain documented in Part 3 and the PAD known-issues table.
+
+---
+
+## Follow-up (2026-09-13): supply-chain hardening — production graph audit-clean
+
+A re-verification pass over the remediated codebase (all gates re-run: 49/49 tests under UTC / America/New_York / Asia/Singapore, lint clean, `tsc --noEmit` clean, production build green, `scripts/skill-verify.sh` all checks passed, live agent-browser booking E2E + toast re-confirmed with zero console errors) surfaced three advisories still reachable from the **production** dependency graph:
+
+| Advisory | Severity | Path | Fix |
+|---|---|---|---|
+| GHSA-737v-mqg7-c878 (`defu` ≤6.1.4, prototype pollution) | high | `@prisma/client` (optional peer) → prisma → @prisma/config → c12 → defu | `overrides` → `defu@6.1.7` |
+| GHSA-ggr8-5vv4-36mx (`deepmerge-ts` <8.0.0, stack exhaustion) | high | prisma → @prisma/config → deepmerge-ts | `overrides` → `deepmerge-ts@8.0.2` |
+| GHSA-w5vr-8v7q-w6rv (`baseline-browser-mapping` <2.11.0, DoS on invalid input) | moderate | browserslist → @babel → eslint chain (dev-only copy; next's own copy was already 2.11.23) | `overrides` → `baseline-browser-mapping@2.11.23` |
+
+Structural change: **`prisma` (CLI) moved from `dependencies` to `devDependencies`** — it is never imported at runtime (only `@prisma/client` via `src/lib/db.ts`), matching Prisma's own deployment guidance. `prisma generate` and `prisma db push` re-verified working after both the move and the `deepmerge-ts` v8 override.
+
+**Verification after the change:** lockfile updated via `bun install`; `bun audit --prod` → "No vulnerabilities found"; full `bun audit` 27 → 24 findings (0 critical, 0 in the prod graph — remainder is dev-tooling transitives: picomatch / flatted / browserslist via eslint / vitest / tailwind); 49/49 tests × 3 timezones; lint + tsc clean; production build green; booking E2E re-verified end-to-end (sonner toast + SQLite row `WCC-506M70` + test-row cleanup). Evidence screenshots: `tool-results/verification-2026-09-13/` (untracked).
