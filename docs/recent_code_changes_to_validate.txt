@@ -1,0 +1,42 @@
+$ git pull
+remote: Enumerating objects: 49, done.
+remote: Counting objects: 100% (49/49), done.
+remote: Compressing objects: 100% (19/19), done.
+remote: Total 49 (delta 28), reused 49 (delta 28), pack-reused 0 (from 0)
+Unpacking objects: 100% (49/49), 22.75 KiB | 84.00 KiB/s, done.
+From github.com:nordeim/car-care
+   8ee7ac3..949bed6  main       -> origin/main
+Updating 8ee7ac3..949bed6
+Fast-forward
+ .env.example                                | 18 ++++++++++--------
+ AGENTS.md                                   | 13 ++++++-------
+ CLAUDE.md                                   | 21 ++++++++++-----------
+ PRD.md                                      | 24 ++++++++++++------------
+ README.md                                   | 29 +++++++++++++++--------------
+ bun.lock                                    |  2 +-
+ car-care_SKILL.md                           | 41 ++++++++++++++++++++++-------------------
+ docs/code-review-audit-2026-09.md           | 77 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ e2e/api.spec.ts                             | 22 ++++++++++++++++++++++
+ e2e/helpers/db.ts                           | 16 +++++++---------
+ next.config.ts                              | 35 +++++++++++++++++++++++++++++++++++
+ package.json                                | 18 +++++++++---------
+ scripts/db.ts                               | 64 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/app/api/bookings/route.ts               | 14 +++++++++++++-
+ src/app/api/questions/route.ts              | 14 +++++++++++++-
+ src/components/wcc/call-fab.tsx             |  5 +++--
+ src/components/wcc/site-footer.tsx          |  7 ++++++-
+ src/lib/db.ts                               | 44 +++++++++-----------------------------------
+ src/lib/wcc/__tests__/client-ip.test.ts     | 51 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/lib/wcc/__tests__/db-url.test.ts        | 71 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/lib/wcc/__tests__/payload-limit.test.ts | 25 +++++++++++++++++++++++++
+ src/lib/wcc/db-url.ts                       | 46 ++++++++++++++++++++++++++++++++++++++++++++++
+ src/lib/wcc/payload-limit.ts                | 19 +++++++++++++++++++
+ src/lib/wcc/rate-limit.ts                   | 21 +++++++++++++++++++--
+ 
+ create mode 100644 docs/code-review-audit-2026-09.md
+ create mode 100644 scripts/db.ts
+ create mode 100644 src/lib/wcc/__tests__/client-ip.test.ts
+ create mode 100644 src/lib/wcc/__tests__/db-url.test.ts
+ create mode 100644 src/lib/wcc/__tests__/payload-limit.test.ts
+ create mode 100644 src/lib/wcc/db-url.ts
+ create mode 100644 src/lib/wcc/payload-limit.ts

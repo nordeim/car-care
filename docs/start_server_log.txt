@@ -1,0 +1,69 @@
+$ rm db/custom.db 
+
+$ bun run db:migrate
+$ bun scripts/db.ts migrate dev
+[db] DATABASE_URL resolved to file:/Home1/project/car-care/db/custom.db
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "custom.db" at "file:/Home1/project/car-care/db/custom.db"
+
+SQLite database custom.db created at file:/Home1/project/car-care/db/custom.db
+
+✔ Enter a name for the new migration: … init
+Applying migration `20260913142416_init`
+
+The following migration(s) have been created and applied from new schema changes:
+
+prisma/migrations/
+  └─ 20260913142416_init/
+    └─ migration.sql
+
+Your database is now in sync with your schema.
+
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 296ms
+
+
+$ bun run build
+$ next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
+▲ Next.js 16.3.5 (Turbopack)
+- Environments: .env
+✓ Running next.config.ts took 38ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 746ms
+✓ Finished TypeScript in 3.5s    
+✓ Collecting page data using 3 workers in 1167ms    
+✓ Generating static pages using 3 workers (8/8) in 506ms
+✓ Finalizing page optimization in 2.7s    
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/bookings
+├ ƒ /api/questions
+├ ○ /icon.svg
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+$ PORT=3005 bun run start
+$ NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log
+▲ Next.js 16.3.5
+- Local:         http://localhost:3005
+- Network:       http://0.0.0.0:3005
+✓ Ready in 0ms
+✓ Running next.config took 5ms
+
+$ bun run db:push
+$ bun scripts/db.ts db push --accept-data-loss
+[db] DATABASE_URL resolved to file:/Home1/project/car-care/db/custom.db
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "custom.db" at "file:/Home1/project/car-care/db/custom.db"
+
+The database is already in sync with the Prisma schema.
+
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 188ms

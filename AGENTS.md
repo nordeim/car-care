@@ -71,3 +71,14 @@ Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production b
   GIT_SSH_COMMAND="/home/z/my-project/docs/ssh_git_wrapper_v3.py -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" git push origin main
   ```
 - `.env`, `worklog.md`, `db/*.db`, SSH keys must never be committed (already gitignored).
+
+## Local gate (post-browser, post-cleanup): 
+ 
+```bash 
+  npm test          # 66/66 (8 files) — also TZ=UTC / Asia/Singapore green (reran explicitly) 
+  bunx tsc --noEmit # 0 
+  bun run lint      # 0 
+  bun run build     # Route (app) ○ /, ƒ /api/bookings, ƒ /api/questions, ○ /icon.svg, ○ /sitemap.xml, ○ /robots.txt 
+  bun run e2e       # 31/31 using 1 worker (2.9s a11y, 85ms 429, 14ms 413, 323ms 201 persistence) — full log retained 
+```
+
