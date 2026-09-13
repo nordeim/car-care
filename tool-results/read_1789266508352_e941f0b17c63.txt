@@ -1,0 +1,658 @@
+     1→---
+     2→name: avant-garde-design-v4
+     3→description: >
+     4→  Elite web design skill for producing distinctive, production-grade frontend interfaces.
+     5→  Use when: (1) Building new web UI from scratch, (2) Creating luxury/premium brand experiences,
+     6→  (3) Designing landing pages, marketing sites, or product showcases, (4) Reviewing UI designs for Anti-Generic compliance,
+     7→  (5) Establishing design direction for a project, (6) Migrating from Tailwind v3 to v4,
+     8→  (7) Debugging mobile navigation issues, (8) User asks for "avant-garde", "distinctive", "non-generic", "luxury", or "premium" design.
+     9→  Triggers on phrases like "create a beautiful website", "design a landing page", "build a luxury UI",
+    10→  "make it distinctive", "avoid generic design", "mobile nav not working", "tailwind v4 migration".
+    11→---
+    12→
+    13→# Avant-Garde Web Design Skill v4.0
+    14→## The Comprehensive Guide to Intentional, Production-Grade Interface Design
+    15→
+    16→> **"The goal is not to be different for difference's sake, but to be intentionally aligned with user psychology, brand promise, and aesthetic purpose."**
+    17→
+    18→---
+    19→
+    20→## Skill Metadata
+    21→
+    22→| Attribute | Value |
+    23→|-----------|-------|
+    24→| **Name** | avant-garde-design-v4 |
+    25→| **Classification** | Master Design Skill / Production-Ready |
+    26→| **Complexity** | Expert |
+    27→| **Last Updated** | March 20, 2026 |
+    28→| **Author** | Frontend Architect & Avant-Garde UI Designer |
+    29→
+    30→---
+    31→
+    32→## When to Activate This Skill
+    33→
+    34→Invoke this skill when you need to:
+    35→
+    36→- ✅ Build distinctive, memorable interfaces that reject template aesthetics and "AI slop"
+    37→- ✅ Create luxury, high-end, or avant-garde UI designs requiring strategic visual positioning
+    38→- ✅ Implement production-grade frontend with Tailwind CSS v4 CSS-first architecture
+    39→- ✅ Design with shadcn/ui components with custom styling and variants
+    40→- ✅ Implement accessible animations with `prefers-reduced-motion` support
+    41→- ✅ Migrate existing projects to Tailwind CSS v4 CSS-first configuration
+    42→- ✅ Debug mobile navigation issues or visual discrepancies
+    43→- ✅ Conduct design quality reviews for React/Next.js/TypeScript projects
+    44→
+    45→**Trigger Phrases:**
+    46→- "create a beautiful website"
+    47→- "design a landing page"
+    48→- "build a luxury UI"
+    49→- "make it distinctive"
+    50→- "avoid generic design"
+    51→- "mobile nav not working"
+    52→- "tailwind v4 migration"
+    53→
+    54→---
+    55→
+    56→## Core Design Philosophy
+    57→
+    58→### 1.1 The Anti-Generic Mandate
+    59→
+    60→Every interface must have a **distinctive conceptual direction**. In 2026, the web is saturated with "AI-generated" aesthetics—perfect spacing, neutral gradients, the same four fonts, polite empty tone. It's beautiful in the way a hotel lobby is beautiful: pleasant, but forgettable.
+    61→
+    62→**The pendulum is swinging.** Designers are reclaiming taste, imperfection, and humanity. Expect asymmetry, intentional roughness, mismatched type, and composition that feels alive rather than machine-balanced.
+    63→
+    64→| Reject | Why | Embrace Instead |
+    65→|--------|-----|-----------------|
+    66→| Bento grids | Modern cliché, every AI design | Why does this content NEED a grid? |
+    67→| Hero split (left/right) | Predictable, boring | Massive typography or vertical narrative |
+    68→| Mesh/Aurora gradients | Lazy "floating blobs" | Radical color pairing, high-contrast flat |
+    69→| Glassmorphism (blue/white) | AI's idea of "premium" | Intentional color stories, solid surfaces |
+    70→| Inter/Roboto without hierarchy | Safe = forgettable | Distinctive type pairings with purpose |
+    71→| Purple-gradient-on-white | Overused cliché | Unexpected combinations |
+    72→| "Calm Tech" taken too far | Can become boring | Inject "Tactile Maximalism"—squishy buttons, glass-like elements with physical weight |
+    73→
+    74→### 1.2 The Four Universal Truths
+    75→
+    76→```
+    77→┌─────────────────────────────────────────────────────────────────┐
+    78→│                                                                 │
+    79→│   1. INTENTIONALITY     The only differentiator                │
+    80→│      → Every element earns its place through defensible reason  │
+    81→│      → If you cannot articulate why, the decision is not yet    │
+    82→│        intentional.                                             │
+    83→│                                                                 │
+    84→│   2. HIERARCHY          A sacred duty                          │
+    85→│      → Users must never wonder what to look at next            │
+    86→│      → Test by squinting—if hierarchy collapses, redesign      │
+    87→│                                                                 │
+    88→│   3. WHITESPACE         Structural voice, not empty space      │
+    89→│      → Communicates calm (Institutional) or drama (Dynamic)    │
+    90→│      → Before adding any element, ask: "Could whitespace       │
+    91→│        achieve this goal instead?"                              │
+    92→│                                                                 │
+    93→│   4. ACCESSIBILITY      Mastery, not afterthought              │
+    94→│      → Engineer for inclusion from the start                   │
+    95→│      → By April 24, 2026, WCAG 2.1 Level AA is federally       │
+    96→│        required for many organizations (ADA Title II)           │
+    97→│      → Complexity is never an excuse for exclusion             │
+    98→│                                                                 │
+    99→└─────────────────────────────────────────────────────────────────┘
+   100→```
+   101→
+   102→### 1.3 Multi-Dimensional Analysis Framework
+   103→
+   104→Analyze every design decision through four lenses:
+   105→
+   106→| Lens | Questions to Answer |
+   107→|------|---------------------|
+   108→| **Psychological** | User sentiment? Cognitive load? Emotional response? Primary fear vs. desire? Does this build trust (Institutional) or desire (Dynamic)? |
+   109→| **Technical** | Rendering performance? Repaint/reflow costs? State complexity? Bundle impact? Does this use compositor-only properties? |
+   110→| **Accessibility** | WCAG AAA compliance? Keyboard navigation? Screen reader support? Reduced motion? Focus management? |
+   111→| **Scalability** | Long-term maintenance? Modularity? Design system fit? Component reusability? Token-based? |
+   112→
+   113→---
+   114→
+   115→## Part I: Strategic Positioning Framework
+   116→
+   117→### 2.1 The Intentionality Compass
+   118→
+   119→Before any visual work, determine strategic positioning via psychographic assessment.
+   120→
+   121→**Phase 1: Audience Analysis (15 min)**
+   122→
+   123→Answer these four questions in writing:
+   124→
+   125→| Question | If Leans Toward... | Compass Points To... |
+   126→|----------|-------------------|---------------------|
+   127→| Primary fear? | "Wasting money on bad decision" | **Institutional Clarity** (Reduce risk) |
+   128→| | "Missing out on next big thing" | **Dynamic Modernism** (Amplify FOMO) |
+   129→| Decision style? | Rational, research-heavy | **Institutional Clarity** (Provide data) |
+   130→| | Emotional, status-driven | **Dynamic Modernism** (Create desire) |
+   131→| Trust source? | Institutions, credentials | **Institutional Clarity** (Signal legacy) |
+   132→| | Innovators, peers | **Dynamic Modernism** (Signal community) |
+   133→| Category relationship? | New, needs reassurance | **Institutional Clarity** (Build confidence) |
+   134→| | Experienced, seeking best | **Dynamic Modernism** (Signal superiority) |
+   135→
+   136→### 2.2 Strategic Positioning Matrix (2026 Update)
+   137→
+   138→```
+   139→                    RISK-AVERSE AUDIENCE    │    ASPIRATION-DRIVEN AUDIENCE
+   140→────────────────────────────────────────────┼──────────────────────────────────
+   141→ESTABLISHED BRAND                           │
+   142→  → Q1: THE GUARDIAN                       │    → Q2: LEGACY INNOVATOR
+   143→    Perfect classic execution               │      Blend trusted + bold accents
+   144→    Keywords: Reliable, Professional        │      Keywords: Prestigious, Forward
+   145→    Example: iTrust Academy                 │      Example: Harvard AI Program
+   146→    Aesthetic: "Calm Tech" with warmth      │
+   147→────────────────────────────────────────────┼──────────────────────────────────
+   148→DISRUPTIVE BRAND                            │
+   149→  → Q3: TRUSTWORTHY UPSTART                │    → Q4: THE VISIONARY
+   150→    Modern + ultra-clear + trust signals    │      Full commitment to bold
+   151→    Keywords: Fresh, Credible               │      Keywords: Innovative, Bold
+   152→    Example: New fintech for boomers        │      Example: AI Academy (Kimi)
+   153→    Aesthetic: Clean + human imperfection   │      Aesthetic: "Tactile Maximalism"
+   154→```
+   155→
+   156→### 2.3 Anti-Generic Litmus Test
+   157→
+   158→For every major design decision, answer:
+   159→
+   160→| Question | Purpose | Pass Criteria |
+   161→|----------|---------|---------------|
+   162→| **Why?** | Tie element to user need/psychology | Clear connection to audience motivation |
+   163→| **Only?** | Challenge defaults—is this the only way? | Considered alternatives, justified choice |
+   164→| **Without?** | Enforce minimalism—does removal diminish the core? | Removal would hurt user experience |
+   165→
+   166→### 2.4 The 40-Minute Pre-Design Ritual
+   167→
+   168→Before writing a single line of code, complete this ritual:
+   169→
+   170→1. **Step 1: Audience Psychographic Assessment** (15 min) – Answer the four questions above.
+   171→2. **Step 2: Strategic Positioning** (10 min) – Place project in the matrix; justify in one paragraph.
+   172→3. **Step 3: Anti-Generic Prompts** (10 min) – Select three prompts from the Design Prompt Library (Appendix B) and answer each in one sentence.
+   173→4. **Step 4: Technical Commitment** (5 min) – Identify top 3 commitments based on quadrant (see Section 14.1).
+   174→
+   175→---
+   176→
+   177→## Part II: The Meticulous Approach (6-Phase SOP)
+   178→
+   179→```
+   180→┌─────────────────────────────────────────────────────────────────┐
+   181→│   ANALYZE → PLAN → VALIDATE → IMPLEMENT → VERIFY → DELIVER      │
+   182→└─────────────────────────────────────────────────────────────────┘
+   183→```
+   184→
+   185→### Phase 1: ANALYZE (Deep Requirement Mining)
+   186→
+   187→**Deliverables:**
+   188→- **Strategic Brief** (1 page): Quadrant position, audience psychographics, emotional goals
+   189→- **Content Audit**: Inventory all content types, prioritize hierarchy
+   190→- **Competitive Matrix**: 3-5 competitor screenshots with differentiation opportunities
+   191→- **Technical Constraints**: Browser support, performance budget, accessibility requirements
+   192→
+   193→**Checklist:**
+   194→- [ ] Intentionality Compass completed
+   195→- [ ] Strategic Positioning Matrix quadrant identified
+   196→- [ ] Anti-Generic Litmus Test passed for core concept
+   197→- [ ] Accessibility requirements defined (AA vs. AAA)
+   198→- [ ] Performance budget established (see Section 14.1)
+   199→
+   200→**Anti-Patterns to Flag:**
+   201→- "Make it look like [competitor]" without differentiation strategy
+   202→- Undefined audience (B2B vs. B2C undetermined)
+   203→- Feature lists without priority ranking
+   204→
+   205→### Phase 2: PLAN (Structured Execution Roadmap)
+   206→
+   207→**Deliverables:**
+   208→1. **Component Architecture**: Tree diagram of components (Server vs. Client)
+   209→2. **File Structure**: Standard Next.js + shadcn layout (see Section 4.4)
+   210→3. **Animation Strategy**: Which elements animate, which respect `prefers-reduced-motion`
+   211→4. **Data Flow**: Server Components vs. Client Components boundary map
+   212→
+   213→**Decision Points:**
+   214→- Navigation pattern: Inline (mobile-visible) vs. Hamburger (Sheet overlay)
+   215→- Color strategy: Single accent (Institutional) vs. Multi-accent (Dynamic)
+   216→- Typography: Single family vs. Two-family system
+   217→
+   218→### Phase 3: VALIDATE (Explicit Confirmation Checkpoint)
+   219→
+   220→**Review Meeting Agenda:**
+   221→1. Present Intentionality Compass positioning
+   222→2. Show 3 style tiles (mood boards) with color/typography swatches
+   223→3. Review component hierarchy diagram
+   224→4. Confirm accessibility target (AA vs. AAA)
+   225→5. Verify performance budget feasibility
+   226→
+   227→**Sign-off Required Before Proceeding:**
+   228→- [ ] Strategic positioning approved
+   229→- [ ] Color palette contrast ratios verified (WebAIM)
+   230→- [ ] Component architecture reviewed
+   231→- [ ] Animation complexity approved
+   232→- [ ] Mobile navigation pattern confirmed
+   233→
+   234→### Phase 4: IMPLEMENT (Modular, Tested Builds)
+   235→
+   236→**Sub-phase 4.1: Foundation**
+   237→- Configure Tailwind v4 theme tokens (`@theme`)
+   238→- Set up fonts in `layout.tsx` (Next.js font optimization)
+   239→- Implement base layout (Navbar, Footer, container system)
+   240→- **Verification**: Theme variables render correctly in DevTools
+   241→
+   242→**Sub-phase 4.2: Components (Library Discipline)**
+   243→
+   244→**CRITICAL**: If shadcn/Radix/Base UI detected, USE IT. Don't rebuild from scratch. Leverage open-source component blocks from Shadcn Space for faster development.
+   245→
+   246→**Sub-phase 4.3: Sections (Composition)**
+   247→- Hero section with strategic positioning (text-focused vs. image-focused)
+   248→- Feature grids with intentional whitespace
+   249→- Trust signals (logos or stats depending on quadrant)
+   250→- Pricing/CTA with conversion psychology
+   251→
+   252→**Sub-phase 4.4: Responsive Behavior**
+   253→- Mobile-first implementation
+   254→- Navigation breakpoint strategy (symmetrical: `hidden md:flex` / `md:hidden`)
+   255→- Touch targets minimum 44×44px
+   256→- Font scaling (clamp() or Tailwind's fluid type)
+   257→
+   258→**Sub-phase 4.5: Animation Implementation**
+   259→- Duration: 150ms (micro), 300ms (standard), 500ms (dramatic)
+   260→- Easing: `cubic-bezier(0.4, 0, 0.2, 1)` (Material ease-out)
+   261→- Properties: Only animate `transform` and `opacity` (compositor-only)
+   262→- Always respect `prefers-reduced-motion`
+   263→
+   264→### Phase 5: VERIFY (Rigorous QA)
+   265→
+   266→**5.1 Visual Debugging Protocol** (see Section 17.0)
+   267→**5.2 Mobile Navigation Verification** (see Section 13.0)
+   268→**5.3 Accessibility Audit** (see Section 11.0)
+   269→**5.4 Performance Verification** (see Section 14.0)
+   270→
+   271→### Phase 6: DELIVER (Complete Handoff)
+   272→
+   273→**Deliverables:**
+   274→1. **Source Code**: Git repository with clean commit history
+   275→2. **Design Documentation**:
+   276→   - Intentionality Compass decisions recorded
+   277→   - Component usage examples
+   278→   - Animation timing specifications
+   279→3. **Runbook**:
+   280→   - Environment setup instructions
+   281→   - Build commands (`npm run build`, `npm run dev`)
+   282→   - Deployment notes
+   283→4. **Quality Report**:
+   284→   - Lighthouse scores
+   285→   - Accessibility audit results
+   286→   - Browser testing matrix
+   287→5. **Knowledge Transfer** (if applicable):
+   288→   - Architecture decisions explained
+   289→   - Extension points identified
+   290→
+   291→---
+   292→
+   293→## Part III: Technical Architecture
+   294→
+   295→### 4.0 Stack Specification & Tooling
+   296→
+   297→**Recommended Stack (2026):**
+   298→
+   299→```yaml
+   300→Core Framework:
+   301→- Next.js: 16.2.0+ (App Router, Server Components, Turbopack)
+   302→- React: 19.1.0+
+   303→- TypeScript: 5.8.0+ (Strict Mode, no `any`)
+   304→
+   305→Styling & UI:
+   306→- Tailwind CSS: v4.1.0+ (CSS-first with @theme, Rust-powered Oxide engine)
+   307→- PostCSS: Not required (use @tailwindcss/vite plugin)
+   308→- shadcn/ui: Component primitives (Radix/Base UI)
+   309→- class-variance-authority: Component variants
+   310→- tailwind-merge: Class deduplication
+   311→- clsx: Conditional classes
+   312→
+   313→Animation:
+   314→- Motion (formerly Framer Motion): 12.5.0+
+   315→- CSS Transitions: For simple hover states (performance)
+   316→
+   317→Forms & Validation:
+   318→- react-hook-form: Form state management
+   319→- zod: Schema validation
+   320→- @hookform/resolvers: Zod integration
+   321→
+   322→Development:
+   323→- ESLint: 9.x with TypeScript
+   324→- Prettier: 3.x with tailwindcss plugin
+   325→- Vitest: Unit testing
+   326→- Playwright: E2E testing
+   327→- Lighthouse CI: Performance monitoring
+   328→```
+   329→
+   330→### 4.1 Performance Gains (Validated)
+   331→
+   332→| Metric | v3 | v4 | Improvement | Source |
+   333→|--------|----|----|-------------|--------|
+   334→| Initial build | ~800ms | ~100ms | **8x faster** | Tailwind Labs |
+   335→| Incremental rebuild | ~200ms | ~5ms | **40x faster** | Tailwind Labs |
+   336→| No-change rebuild | – | – | **182x faster** | Tailwind Labs |
+   337→| Next.js dev startup | baseline | – | **~400% faster** | Vercel Changelog |
+   338→| Server Components render | baseline | – | **25-60% faster** | Vercel Changelog |
+   339→
+   340→### 4.2 Directory Structure
+   341→
+   342→```
+   343→project-root/
+   344→├── src/
+   345→│   ├── app/
+   346→│   │   ├── layout.tsx          # Root layout, fonts, metadata
+   347→│   │   ├── page.tsx            # Home page
+   348→│   │   ├── globals.css         # Tailwind v4 theme + tokens (CRITICAL)
+   349→│   │   └── (routes)/           # Route groups
+   350→│   ├── components/
+   351→│   │   ├── layout/             # Navbar, Footer, Shell
+   352→│   │   ├── sections/           # Hero, Features, Pricing, CTA
+   353→│   │   └── ui/                 # shadcn primitives + custom variants
+   354→│   │       ├── Button.tsx
+   355→│   │       ├── Card.tsx
+   356→│   │       ├── Input.tsx
+   357→│   │       └── Sheet.tsx
+   358→│   ├── lib/
+   359→│   │   ├── utils.ts            # cn(), formatters, helpers
+   360→│   │   └── hooks/              # useReducedMotion, useMediaQuery, useLockBodyScroll
+   361→│   ├── data/                   # Static content (navigation items, feature lists)
+   362→│   └── types/                  # Global TypeScript types
+   363→├── public/                     # Static assets
+   364→├── next.config.ts
+   365→├── tsconfig.json
+   366→└── package.json
+   367→```
+   368→
+   369→---
+   370→
+   371→## Part IV: Design Decision Library
+   372→
+   373→### 7.0 Typography Systems
+   374→
+   375→**Typography Pairings by Strategy:**
+   376→
+   377→| Strategy | Display Font | Body Font | Use Case | H1 Scale |
+   378→|----------|-------------|-----------|----------|----------|
+   379→| **Single Family (Institutional)** | DM Sans | DM Sans | Corporate, fast-loading | 60-72px |
+   380→| **Expressive System (Dynamic)** | Space Grotesk | Inter | Modern tech, personality | 64-77px |
+   381→| **Luxury/Refined** | Instrument Serif | Inter | Elegance + clarity | 60-72px |
+   382→| **Editorial/Magazine** | Playfair Display | Source Sans | Content-heavy | 64-80px |
+   383→| **Developer/Brutalist** | JetBrains Mono | Inter | Technical + readable | 56-68px |
+   384→
+   385→**H1 Scale Guidelines:**
+   386→- Line-height: 1.0-1.06 for display text
+   387→- Letter-spacing: -0.02em to -0.04em for large headlines
+   388→- Fluid typography: `clamp(2.5rem, 5vw, 4.5rem)`
+   389→
+   390→### 8.0 Color Palette Architecture
+   391→
+   392→**60-30-10 Rule:**
+   393→```
+   394→60% → Primary/Background (calm, neutral base)
+   395→30% → Secondary (supporting areas)
+   396→10% → Accent (CTAs, highlights, attention)
+   397→```
+   398→
+   399→**Institutional Clarity (Trust-Based):**
+   400→```css
+   401→@theme {
+   402→  --color-primary: #F27A1A;                    /* Warm orange */
+   403→  --color-primary-subtle: rgba(242, 122, 26, 0.08);
+   404→  --color-bg-primary: #FFFFFF;
+   405→  --color-bg-secondary: #F8F9FA;
+   406→  --color-text-primary: #111827;                /* Near-black */
+   407→  --color-text-secondary: #6B7280;              /* Gray */
+   408→  --color-success: #059669;
+   409→  --color-border: #E5E7EB;
+   410→}
+   411→```
+   412→
+   413→**Dynamic Modernism (Desire-Based):**
+   414→```css
+   415→@theme {
+   416→  --color-primary: #4F46E5;                    /* Indigo */
+   417→  --color-primary-subtle: rgba(79, 70, 229, 0.08);
+   418→  --color-bg-primary: #FAFAF9;                  /* Warm off-white */
+   419→  --color-bg-card: #F8FAFC;                     /* Cool off-white */
+   420→  --color-bg-dark: #1E293B;                     /* Slate-800 for contrast */
+   421→  --color-text-primary: #15172A;                 /* Slate-900 */
+   422→  --color-text-secondary: #475569;               /* Slate-600 */
+   423→  --color-accent-cyan: #06B6D4;
+   424→  --color-accent-emerald: #10B981;
+   425→  --color-accent-amber: #F59E0B;
+   426→  --color-accent-violet: #7C3AED;
+   427→  --color-urgency: #EF4444;
+   428→}
+   429→```
+   430→
+   431→### 9.0 Aesthetic Direction Selection
+   432→
+   433→Choose ONE direction and execute with precision. Bold maximalism and refined minimalism both work—key is intentionality, not intensity.
+   434→
+   435→| Direction | Characteristics | When to Use | Keywords |
+   436→|-----------|-----------------|-------------|----------|
+   437→| **Brutally Minimal** | Extreme whitespace, single focal point | Luxury brands, portfolios | Calm, focused, editorial |
+   438→| **Maximalist Chaos** | Layered textures, bold typography | Creative agencies, art | Rich, dense, energetic |
+   439→| **Retro-Futuristic** | Neon, chrome, geometric patterns | Tech products, gaming | Neon, chrome, sci-fi |
+   440→| **Organic/Natural** | Soft curves, earthy tones, fluid shapes | Wellness, sustainability | Earthy, soft, flowing |
+   441→| **Luxury/Refined** | Serif fonts, gold accents, subtle gradients | Premium services, fashion | Elegant, restrained, premium |
+   442→| **Editorial/Magazine** | Asymmetric layouts, bold headlines | Media, publishing | Dynamic, typographic, bold |
+   443→| **Brutalist/Raw** | Exposed structure, monospace, high contrast | Developer tools, portfolios | Raw, honest, functional |
+   444→| **Art Deco/Geometric** | Symmetry, gold/black, stepped forms | Premium hospitality | Geometric, symmetrical, metallic |
+   445→| **Tactile Maximalism** | "Squishy" buttons, glass-like elements with physical weight | Web3, DeFi, NFT platforms | Tangible, reactive, immersive |
+   446→
+   447→---
+   448→
+   449→## Part V: Quality Assurance
+   450→
+   451→### 11.0 Accessibility Requirements (WCAG AAA + ADA Title II)
+   452→
+   453→**Effective April 24, 2026:** Federal law (ADA Title II) requires all digital content to meet WCAG 2.1 Level AA standards. While AAA is not yet legally required, it represents mastery and future-proofing.
+   454→
+   455→**Quick Compliance Checklist:**
+   456→- [ ] Every image has meaningful `alt` text (or `alt=""` if decorative)
+   457→- [ ] Text size minimum 14px (16px+ recommended)
+   458→- [ ] Color contrast: normal text 4.5:1, large text 3:1 (AA) or 7:1/4.5:1 (AAA)
+   459→- [ ] Links are descriptive ("Register for the Spring Career Fair" not "Click here")
+   460→- [ ] Touch targets minimum 24×24px (AA) or 44×44px (AAA)
+   461→- [ ] No important information lives only inside an image
+   462→- [ ] Headings use semantic `<h1>`–`<h6>` for structure
+   463→- [ ] Focus states visible on all interactive elements (`focus-visible:ring-2`)
+   464→- [ ] Forms have associated `<label>` or `aria-label`
+   465→- [ ] `prefers-reduced-motion` respected for all animations
+   466→
+   467→### 14.0 Performance Budgets & Verification
+   468→
+   469→**Technical Commitment Matrix:**
+   470→
+   471→| Quadrant | MUST Commit To | CAN Deprioritize |
+   472→|----------|---------------|------------------|
+   473→| **Q1/Q3 (Institutional Clarity)** | Lighthouse 95+, WCAG AAA, semantic HTML, simple CSS | Complex JS animations, 3D/WebGL |
+   474→| **Q2/Q4 (Dynamic Modernism)** | Expert animation (Framer/GSAP), 3D/WebGL (optional), performance budgeting, `prefers-reduced-motion` | Max perf on low-end devices, pixel-perfect cross-browser |
+   475→
+   476→**Performance Budgets by Quadrant:**
+   477→
+   478→| Metric | Institutional | Dynamic | Balanced |
+   479→|--------|---------------|---------|----------|
+   480→| Initial JS bundle | < 150 KB | < 300 KB | < 200 KB |
+   481→| First Contentful Paint | < 1.0s | < 1.5s | < 1.2s |
+   482→| Largest Contentful Paint | < 1.5s | < 2.5s | < 2.0s |
+   483→| Time to Interactive | < 2.0s | < 3.5s | < 2.5s |
+   484→| Cumulative Layout Shift | < 0.05 | < 0.1 | < 0.05 |
+   485→| Animation Frame Budget | N/A | < 16ms (60fps) | < 16ms |
+   486→
+   487→### 15.0 Anti-Pattern Catalog
+   488→
+   489→**Design Anti-Patterns (2026 Edition):**
+   490→
+   491→| Anti-Pattern | Why It Fails | Correct Approach |
+   492→|--------------|--------------|------------------|
+   493→| **Bento grids** | Modern cliché, every AI design | Question grid necessity; try asymmetry |
+   494→| **Purple-gradient-on-white** | Overused, AI-generated look | Unexpected color combinations, high-contrast flat |
+   495→| **Glassmorphism (blue/white)** | AI's idea of "premium" | Intentional color stories, solid surfaces |
+   496→| **Stock photography** | Generic, inauthentic | Custom illustrations or conceptual imagery |
+   497→| **"Click here" links** | Useless for screen readers | Descriptive link text |
+   498→| **Images of text** | Not readable, not resizable | Real text with proper styling |
+   499→| **Infinite scroll without end** | No rest, overwhelming | Provide natural endpoints |
+   500→
+   501→**Technical Anti-Patterns:**
+   502→
+   503→| Anti-Pattern | Why It Fails | Correct Approach |
+   504→|--------------|--------------|------------------|
+   505→| `tailwind.config.js` in v4 | v4 uses CSS-first | Use `@theme` directive in globals.css |
+   506→| `outline-none` without replacement | Accessibility failure | `outline-hidden` + `focus-visible:ring-*` |
+   507→| `<div onClick>` | Not keyboard accessible | `<button type="button">` |
+   508→| `transition: all` | Performance issue | List specific properties |
+   509→| Dynamic class strings | Purged in production | Use static class strings |
+   510→| `autoFocus` without justification | UX disruption on mobile | Use sparingly, desktop only |
+   511→| Images without dimensions | Layout shift (CLS) | Explicit `width` and `height` |
+   512→| Form inputs without labels | Accessibility failure | `<label>` or `aria-label` required |
+   513→| Animating `width`/`height` | Poor performance, repaints | Use `scale` transform |
+   514→
+   515→---
+   516→
+   517→## Part VI: Verification Gates
+   518→
+   519→### 16.0 Verification Gates
+   520→
+   521→**Design Quality Gate:**
+   522→Before marking any UI work complete:
+   523→- [ ] Distinctive aesthetic direction (not generic)
+   524→- [ ] Intentional whitespace usage (structural, not empty)
+   525→- [ ] Typography hierarchy is clear (squint test passes)
+   526→- [ ] Animations respect `prefers-reduced-motion`
+   527→- [ ] Color contrast meets WCAG AAA
+   528→- [ ] Micro-interactions are satisfying (150-300ms)
+   529→- [ ] Every element justified (Why? Only? Without?)
+   530→
+   531→**Code Quality Gates:**
+   532→- [ ] No `any` types (use `unknown` with type guards)
+   533→- [ ] Proper error boundaries for Client Components
+   534→- [ ] Loading states for async operations
+   535→- [ ] Error states with user-friendly messages
+   536→- [ ] Disabled buttons during form submission
+   537→- [ ] `useEffect` cleanup functions where needed
+   538→- [ ] Memoization for expensive calculations (`useMemo`, `useCallback`)
+   539→
+   540→### 17.0 Debugging Workflows
+   541→
+   542→**Visual Debugging Protocol:**
+   543→```
+   544→Step 1: Is element present in DOM?
+   545→├─ NO → Component not rendering (check conditional logic, props)
+   546→└─ YES → Continue
+   547→
+   548→Step 2: Is it hidden by computed CSS?
+   549→├─ YES → Check display, visibility, opacity, width/height
+   550→└─ NO → Continue
+   551→
+   552→Step 3: Is it off-screen or clipped?
+   553→├─ YES → Check position, transform, overflow on ancestors
+   554→└─ NO → Continue
+   555→
+   556→Step 4: Is it behind another layer?
+   557→├─ YES → Check z-index, stacking contexts
+   558→└─ NO → Continue
+   559→
+   560→Step 5: Is JS failing to toggle state?
+   561→├─ YES → Check console, event listeners, state management
+   562→└─ NO → Continue
+   563→
+   564→Step 6: Production-only disappearance?
+   565→└─ Check dynamic class strings, purge configuration
+   566→```
+   567→
+   568→### 18.0 Knowledge Transfer & Handoff
+   569→
+   570→**Deliverables Checklist:**
+   571→- [ ] Source code with clean commit history
+   572→- [ ] Strategic Brief (Intentionality Compass decisions)
+   573→- [ ] Component usage examples
+   574→- [ ] Animation timing specifications
+   575→- [ ] Environment setup instructions
+   576→- [ ] Build commands (`npm run build`, `npm run dev`)
+   577→- [ ] Deployment notes
+   578→- [ ] Lighthouse scores
+   579→- [ ] Accessibility audit results
+   580→- [ ] Browser testing matrix
+   581→
+   582→---
+   583→
+   584→## Appendices
+   585→
+   586→### Appendix A: Z-Index Scale
+   587→
+   588→```css
+   589→@theme {
+   590→  --z-behind: -1;
+   591→  --z-base: 0;
+   592→  --z-raised: 10;
+   593→  --z-dropdown: 200;
+   594→  --z-sticky: 300;
+   595→  --z-overlay: 400;
+   596→  --z-modal: 500;
+   597→  --z-popover: 600;
+   598→  --z-tooltip: 700;
+   599→  --z-toast: 800;
+   600→  --z-max: 999;
+   601→}
+   602→```
+   603→
+   604→### Appendix B: Design Prompt Library (2026 Edition)
+   605→
+   606→| Prompt Category | Example Prompts |
+   607→|-----------------|-----------------|
+   608→| First Principles | "If our brand were a person, would they be a tenured professor or a startup founder?" |
+   609→| | "Does our user need a handshake or a high-five?" |
+   610→| | "Are we selling a safe harbor or a rocket ship?" |
+   611→| Typography | "If our headlines were spoken, would they be whispered or shouted?" |
+   612→| | "Is our typeface a workhorse or a show pony?" |
+   613→| Color | "If our brand had a flavor, would it be mineral water or an energy drink?" |
+   614→| | "If we removed all color, would our design still communicate brand?" |
+   615→| Layout | "Does our grid feel like a comfortable home or an exciting city?" |
+   616→| | "Where do we want the user's eye to struggle?" (intentional tension) |
+   617→| Interaction | "Does our animation serve the story or just decorate the page?" |
+   618→| | "If our site made a sound, would it be a library or a concert hall?" |
+   619→| 2026 Themes | "Is this interface 'calm' enough to not overwhelm, but 'tactile' enough to feel real?" |
+   620→| | "Does this design have a human fingerprint, or could it have been generated?" |
+   621→| | "Would this work as well without color as it does with color?" |
+   622→
+   623→### Appendix C: Stack Compatibility Matrix
+   624→
+   625→| Tool | Version | Notes |
+   626→|------|---------|-------|
+   627→| Next.js | 16.2+ | App Router required for latest features |
+   628→| React | 19.1+ | Server Components, Actions |
+   629→| TypeScript | 5.8+ | Strict mode enabled |
+   630→| Tailwind CSS | 4.1+ | CSS-first, no config file |
+   631→| Motion | 12.5+ | Formerly Framer Motion |
+   632→| shadcn/ui | latest | Base UI primitives |
+   633→| Node.js | 20+ | Required for Next.js 16+ |
+   634→
+   635→---
+   636→
+   637→## Conclusion: The 2026 Design Ethos
+   638→
+   639→The web in 2026 is moving beyond the "AI-generated" aesthetic toward something more human, more intentional, and more authentic. The designers who will define this era aren't chasing trends—they're reclaiming intention.
+   640→
+   641→**Key takeaways:**
+   642→1. **AI becomes invisible** – The best tools disappear into your workflow
+   643→2. **Imperfection becomes power** – When everything looks perfect, imperfection signals authorship
+   644→3. **The "Quiet Web" emerges** – Personal sites, digital gardens, spaces built without growth goals
+   645→4. **Calm Tech + Tactile Maximalism** – Interfaces are both calming and physically reactive
+   646→5. **Accessibility is now law** – ADA Title II compliance required by April 2026
+   647→
+   648→> "The web doesn't need to get smarter next year. It just needs to feel real again."
+   649→
+   650→**Avant-Garde Web Design v3.0** gives you the frameworks, technical specifications, and verification protocols to build interfaces that are not just functional, but unforgettable—interfaces that feel alive, intentional, and unmistakably human.
+   651→
+   652→---
+   653→
+   654→**Version**: 3.0.0
+   655→**Last Updated**: March 20, 2026
+   656→**Classification**: Master Design Skill / Production-Ready
+   657→**Author**: Frontend Architect & Avant-Garde UI Designer
+   658→

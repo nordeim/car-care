@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Detail appointment requests submitted through the booking flow.
+model Booking {
+  id             String   @id @default(cuid())
+  serviceKey     String // e.g. "premium-full", "ceramic-3yr"
+  serviceName    String
+  vehicleType    String // "sedan" | "suv"
+  serviceMode    String // "mobile" | "shop" | "pickup"
+  date           String // ISO date "YYYY-MM-DD"
+  time           String // "09:00"
+  name           String
+  phone          String
+  email          String
+  address        String?
+  city           String?
+  notes          String?
+  priceQuote     Int? // quoted total in USD
+  addOnCeramic   Boolean  @default(false)
+  status         String   @default("pending")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([date])
+}
+
+// "Ask a question" inquiries.
+model Question {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  question  String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
