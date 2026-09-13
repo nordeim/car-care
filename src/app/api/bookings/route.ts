@@ -41,7 +41,8 @@ export async function POST(request: Request) {
   if (bookingRateLimiter.check(clientIpFrom(request))) {
     return NextResponse.json(
       { error: "Too many booking attempts. Please call us at (508) 290-7476 to schedule." },
-      { status: 429 },
+      // Retry-After matches the limiter window (10 min = 600s, RFC 6585 §4).
+      { status: 429, headers: { "Retry-After": "600" } },
     );
   }
 

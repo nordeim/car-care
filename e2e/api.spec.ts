@@ -123,6 +123,8 @@ test.describe("bookings API", () => {
     }
     expect(last?.status()).toBe(429);
     expect(last?.headers()["content-type"]).toContain("application/json");
+    // RFC 6585 §4 — polite clients back off for the window length (10 min).
+    expect(last?.headers()["retry-after"]).toBe("600");
     const body = (await last!.json()) as { error: string };
     expect(body.error).toContain("(508) 290-7476");
   });

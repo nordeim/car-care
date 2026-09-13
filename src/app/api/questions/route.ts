@@ -38,7 +38,8 @@ export async function POST(request: Request) {
   if (questionRateLimiter.check(clientIpFrom(request))) {
     return NextResponse.json(
       { error: "Too many attempts. Please call (508) 290-7476 and we'll answer directly." },
-      { status: 429 },
+      // Retry-After matches the limiter window (10 min = 600s, RFC 6585 §4).
+      { status: 429, headers: { "Retry-After": "600" } },
     );
   }
 

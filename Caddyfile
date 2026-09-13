@@ -1,23 +1,36 @@
+# ⚠️ SANDBOX PREVIEW CONFIG — DO NOT DEPLOY PUBLICLY.
+#
+# This file exists only for the local sandbox preview proxy (:81 → the dev
+# server on :3000, plus the XTransformPort query handler the sandbox infra
+# uses to route preview links). The XTransformPort handler proxies to
+# ARBITRARY localhost ports — on a public interface that is an open-proxy
+# (SSRF-style) vector, so never ship this file to a production edge.
+#
+# The LIVE deployment (https://car-care.jesspete.shop) does NOT use this
+# file: Cloudflare terminates TLS and proxies to the host, where the
+# standalone Next.js server runs (see docs/start_server_log.txt — the live
+# bootstrap started it on :3005 behind the host's own reverse proxy).
+
 :81 {
-	@transform_port_query {
-		query XTransformPort=*
-	}
+        @transform_port_query {
+                query XTransformPort=*
+        }
 
-	handle @transform_port_query {
-		reverse_proxy localhost:{query.XTransformPort} {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
-	}
+        handle @transform_port_query {
+                reverse_proxy localhost:{query.XTransformPort} {
+                        header_up Host {host}
+                        header_up X-Forwarded-For {remote_host}
+                        header_up X-Forwarded-Proto {scheme}
+                        header_up X-Real-IP {remote_host}
+                }
+        }
 
-	handle {
-		reverse_proxy localhost:3000 {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
-	}
+        handle {
+                reverse_proxy localhost:3000 {
+                        header_up Host {host}
+                        header_up X-Forwarded-For {remote_host}
+                        header_up X-Forwarded-Proto {scheme}
+                        header_up X-Real-IP {remote_host}
+                }
+        }
 }
