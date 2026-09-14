@@ -28,6 +28,9 @@ test.describe("seo", () => {
       "content",
       /\/images\/hero-car\.webp$/,
     );
+    // Source site declares its locale — social scrapers use it for
+    // localization; emit the same (SEO parity G6, cycle 6).
+    await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute("content", "en_US");
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
       "content",
       "summary_large_image",

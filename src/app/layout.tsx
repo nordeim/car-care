@@ -47,6 +47,9 @@ export const metadata: Metadata = {
       "Professional eco-friendly auto detailing & ceramic coating in Framingham, MA. 16+ years, 5-star rated. Book today!",
     siteName: BUSINESS.name,
     type: "website",
+    // Source site declares en_US — social scrapers use it for locale-aware
+    // rendering of the card (SEO parity G6, cycle 6).
+    locale: "en_US",
     images: [{ url: "/images/hero-car.webp", width: 1344, height: 768 }],
   },
   twitter: {
