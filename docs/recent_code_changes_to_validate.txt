@@ -1,39 +1,21 @@
 $ git pull
-remote: Enumerating objects: 71, done.
-remote: Counting objects: 100% (71/71), done.
-remote: Compressing objects: 100% (18/18), done.
-remote: Total 46 (delta 26), reused 46 (delta 26), pack-reused 0 (from 0)
-Unpacking objects: 100% (46/46), 26.74 KiB | 489.00 KiB/s, done.
-From github.com:nordeim/car-care
-   5b48f14..3d341ba  main       -> origin/main
-Updating 5b48f14..3d341ba
+Updating da04511..8733985
 Fast-forward
- AGENTS.md                                |  18 ++++++++++--------
- CLAUDE.md                                |  10 +++++-----
- Caddyfile                                |  51 ++++++++++++++++++++++++++++++++-------------------
- PRD.md                                   |  16 ++++++++--------
- README.md                                |  17 ++++++++++-------
- car-care_SKILL.md                        |  32 +++++++++++++++++++-------------
- docs/code-review-audit-2026-09-cycle5.md |  83 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- e2e/api.spec.ts                          |   2 ++
- e2e/seo.spec.ts                          |  64 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- public/favicon.ico                       | Bin 0 -> 622 bytes
- scripts/gen-icons.mjs                    |  64 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- scripts/live-axe-scan.mjs                |  51 +++++++++++++++++++++++++++++++++++++++++++++++++++
- scripts/live-parity-vlm.mjs              |  73 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- scripts/skill-verify.sh                  |   6 +++---
- src/app/api/bookings/route.ts            |   3 ++-
- src/app/api/questions/route.ts           |   3 ++-
- src/app/apple-icon.png                   | Bin 0 -> 3637 bytes
- src/app/layout.tsx                       |  40 +++++++++++++++++++++++++++++++++++++---
- src/lib/wcc/__tests__/json-ld.test.ts    |  44 ++++++++++++++++++++++++++++++++++++++++++++
- src/lib/wcc/json-ld.ts                   |  15 +++++++++++++++
- 20 files changed, 524 insertions(+), 68 deletions(-)
- create mode 100644 docs/code-review-audit-2026-09-cycle5.md
- create mode 100644 public/favicon.ico
- create mode 100644 scripts/gen-icons.mjs
- create mode 100644 scripts/live-axe-scan.mjs
- create mode 100644 scripts/live-parity-vlm.mjs
- create mode 100644 src/app/apple-icon.png
- create mode 100644 src/lib/wcc/__tests__/json-ld.test.ts
- create mode 100644 src/lib/wcc/json-ld.ts
+ AGENTS.md                                |  8 ++++----
+ CLAUDE.md                                |  6 +++---
+ PRD.md                                   |  8 ++++----
+ README.md                                | 11 ++++++-----
+ car-care_SKILL.md                        | 27 ++++++++++++++++-----------
+ docs/code-review-audit-2026-09-cycle6.md | 98 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ docs/session_4.md                        | 42 ++++++++++++++++++++++++++++++++++++++++++
+ e2e/seo.spec.ts                          |  3 +++
+ prisma/schema.prisma                     |  2 +-
+ scripts/skill-verify.sh                  | 14 ++++++++------
+ src/app/layout.tsx                       |  3 +++
+ src/components/wcc/booking-dialog.tsx    | 12 ++++++++++--
+ src/components/wcc/final-cta.tsx         |  2 +-
+ src/lib/wcc/__tests__/booking.test.ts    | 37 ++++++++++++++++++++++++++++++++-----
+ src/lib/wcc/booking.ts                   | 37 +++++++++++++++++++++++--------------
+ 15 files changed, 254 insertions(+), 56 deletions(-)
+ create mode 100644 docs/code-review-audit-2026-09-cycle6.md
+ create mode 100644 docs/session_4.md
