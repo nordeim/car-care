@@ -1,27 +1,6 @@
-$ cat .env
-# ─────────────────────────────────────────────────────────────────────────────
-# We Care Car Care (car-care) — environment
-# ─────────────────────────────────────────────────────────────────────────────
-# This file is gitignored (see .gitignore). Copy from .env.example:
-#   cp .env.example .env
-# Never commit secrets or customer PII.
-# ─────────────────────────────────────────────────────────────────────────────
-
-# SQLite database URL for Prisma (schema: prisma/schema.prisma).
-# Relative paths resolve from prisma/ — file:../db/custom.db lands at
-# db/custom.db in the repo root. The app's db.ts normalizes this for the
-# standalone runtime (which chdirs to .next/standalone). Absolute file: URLs
-# also work (e.g. in containers).
-DATABASE_URL=file:../db/custom.db
-
-# Canonical site URL for SEO (metadataBase, OG, sitemap, robots).
-# Live deploy: https://car-care.jesspete.shop
-# Original source (reference): https://wecarecarcare.com
-NEXT_PUBLIC_SITE_URL=https://car-care.jesspete.shop
-SITE_URL=https://car-care.jesspete.shop
-
-$ bun run db:migrate
-$ bun scripts/db.ts migrate dev
+$ npm run db:migrate
+npm notice run car-care@1.3.0 db:migrate
+npm notice run bun scripts/db.ts migrate dev
 [db] DATABASE_URL resolved to file:/Home1/project/car-care/db/custom.db
 Environment variables loaded from .env
 Prisma schema loaded from prisma/schema.prisma
@@ -29,11 +8,13 @@ Datasource "db": SQLite database "custom.db" at "file:/Home1/project/car-care/db
 
 Already in sync, no schema change or pending migration was found.
 
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 284ms
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 220ms
 
 
-$ bun run db:push
-$ bun scripts/db.ts db push --accept-data-loss
+(venv) pete@pop-os:/Home1/project/car-care
+$ npm run db:push
+npm notice run car-care@1.3.0 db:push
+npm notice run bun scripts/db.ts db push --accept-data-loss
 [db] DATABASE_URL resolved to file:/Home1/project/car-care/db/custom.db
 Environment variables loaded from .env
 Prisma schema loaded from prisma/schema.prisma
@@ -41,28 +22,30 @@ Datasource "db": SQLite database "custom.db" at "file:/Home1/project/car-care/db
 
 The database is already in sync with the Prisma schema.
 
-✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 225ms
+✔ Generated Prisma Client (v6.19.3) to ./node_modules/@prisma/client in 257ms
 
+(venv) pete@pop-os:/Home1/project/car-care
 $ rm -rf .next/
-
+(venv) pete@pop-os:/Home1/project/car-care
 $ bun run build
 $ next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
 ▲ Next.js 16.3.5 (Turbopack)
 - Environments: .env
-✓ Running next.config.ts took 59ms
+✓ Running next.config.ts took 121ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 10.7s
-✓ Finished TypeScript in 6.7s    
-✓ Collecting page data using 3 workers in 1260ms    
-✓ Generating static pages using 3 workers (8/8) in 450ms
-✓ Finalizing page optimization in 2.6s    
+✓ Compiled successfully in 26.6s
+✓ Finished TypeScript in 9.9s    
+✓ Collecting page data using 3 workers in 1565ms    
+✓ Generating static pages using 3 workers (9/9) in 922ms
+✓ Finalizing page optimization in 2.9s    
 
 Route (app)
 ┌ ○ /
 ├ ○ /_not-found
 ├ ƒ /api/bookings
 ├ ƒ /api/questions
+├ ○ /apple-icon.png
 ├ ○ /icon.svg
 ├ ○ /robots.txt
 └ ○ /sitemap.xml
@@ -70,11 +53,3 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
-
-$ PORT=3005 bun run start
-$ NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log
-▲ Next.js 16.3.5
-- Local:         http://localhost:3005
-- Network:       http://0.0.0.0:3005
-✓ Ready in 0ms
-✓ Running next.config took 5ms
