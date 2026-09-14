@@ -30,7 +30,7 @@ export function FinalCta() {
       <div className="relative mx-auto w-full max-w-5xl px-4 text-center sm:px-6">
         <Reveal>
           <p className="inline-flex items-center gap-2 rounded-full border border-border bg-black/45 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground backdrop-blur-sm">
-            {/* Visible text is the accessible name (5.0 · N Google reviews);
+            {/* Visible text is the accessible name (rating + review count);
                 aria-label is prohibited on <p> — audit cycle 2, M-3. */}
             <span className="flex items-center gap-0.5" aria-hidden="true">
               {[0, 1, 2, 3, 4].map((i) => (

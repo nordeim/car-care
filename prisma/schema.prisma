@@ -15,7 +15,7 @@ model Booking {
   vehicleType    String // "sedan" | "suv"
   serviceMode    String // "mobile" | "shop" | "pickup"
   date           String // ISO date "YYYY-MM-DD"
-  time           String // "09:00"
+  time           String // TIME_SLOTS label, e.g. "09:30 AM"
   name           String
   phone          String
   email          String

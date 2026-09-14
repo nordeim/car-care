@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 // B3 — regression locks for existing booking logic (should pass as-is).
 import { buildDayOptions, findService, quoteFor, usd } from "@/lib/wcc/booking";
+import { BUSINESS_TZ, todayIsoInTz } from "@/lib/wcc/dates";
 import { BOOKABLE_SERVICES } from "@/data/wcc/content";
 
 describe("findService", () => {
@@ -32,31 +33,57 @@ describe("quoteFor", () => {
 });
 
 describe("buildDayOptions", () => {
-  it("builds 14 consecutive days starting today", () => {
-    const days = buildDayOptions(new Date(2026, 8, 14), 14); // Sep 14 2026 (Monday)
+  it("builds 14 consecutive days starting at the anchor", () => {
+    const days = buildDayOptions("2026-09-14", 14); // Sep 14 2026 (Monday)
     expect(days).toHaveLength(14);
     expect(days[0].iso).toBe("2026-09-14");
     expect(days[13].iso).toBe("2026-09-27");
   });
 
   it("marks Sundays as closed", () => {
-    const days = buildDayOptions(new Date(2026, 8, 14), 14);
+    const days = buildDayOptions("2026-09-14", 14);
     expect(days[6].iso).toBe("2026-09-20"); // Sunday
     expect(days[6].closed).toBe(true);
     expect(days[6].slots).toBe(0);
   });
 
   it("open days expose 6 slots", () => {
-    const days = buildDayOptions(new Date(2026, 8, 14), 14);
+    const days = buildDayOptions("2026-09-14", 14);
     expect(days[0].closed).toBe(false);
     expect(days[0].slots).toBe(6);
   });
 
   it("formats weekday and month labels", () => {
-    const days = buildDayOptions(new Date(2026, 8, 14), 1);
+    const days = buildDayOptions("2026-09-14", 1);
     expect(days[0].weekday).toBe("Mon");
     expect(days[0].month).toBe("Sep");
     expect(days[0].day).toBe(14);
+  });
+
+  // Cycle 6, B1 — the anchor is an ISO date so the output is identical on
+  // any host timezone (labels derive from UTC, never host-local fields).
+  it("derives labels from the ISO date itself, not the host timezone", () => {
+    const days = buildDayOptions("2026-09-14", 2);
+    expect(days[0].weekday).toBe("Mon");
+    expect(days[1].weekday).toBe("Tue");
+    expect(days[1].day).toBe(15);
+    expect(days[1].month).toBe("Sep");
+  });
+
+  it("returns an empty list for an invalid anchor (defensive, no throw)", () => {
+    expect(buildDayOptions("09/14/2026", 14)).toEqual([]);
+    expect(buildDayOptions("", 14)).toEqual([]);
+  });
+
+  // Cycle 6, B1 — PRD F2.2: "14 days from America/New_York today". The caller
+  // supplies the business-TZ anchor; this locks the seam end-to-end with a
+  // fixed instant where the NY calendar date differs from the UTC date.
+  it("anchors to the business-timezone today when fed todayIsoInTz", () => {
+    // 2026-09-15T02:30:00Z is still Sep 14 evening in America/New_York.
+    const anchor = todayIsoInTz(new Date("2026-09-15T02:30:00Z"), BUSINESS_TZ);
+    expect(anchor).toBe("2026-09-14");
+    const days = buildDayOptions(anchor, 1);
+    expect(days[0].iso).toBe("2026-09-14");
   });
 });
 

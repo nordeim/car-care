@@ -37,8 +37,8 @@ done
 
 echo "=== 2. Test count claim ==="
 ACTUAL=$(TZ=UTC npm test 2>&1 | rg -o "Tests\s+[0-9]+ passed \([0-9]+\)" | rg -o "[0-9]+ passed \([0-9]+\)" | head -1)
-echo "actual: ${ACTUAL:-none} / claimed: 69/69 (SKILL project_state)"
-[ "${ACTUAL%% *}" = "69" ] && echo "OK  tests" || { echo "FAIL tests"; ERRORS=$((ERRORS+1)); }
+echo "actual: ${ACTUAL:-none} / claimed: 72/72 (SKILL project_state)"
+[ "${ACTUAL%% *}" = "72" ] && echo "OK  tests" || { echo "FAIL tests"; ERRORS=$((ERRORS+1)); }
 
 echo "=== 3. Component count claims ==="
 WCC=$(find src/components/wcc -name '*.tsx' | wc -l)
@@ -86,12 +86,14 @@ else
   ERRORS=$((ERRORS+1))
 fi
 
-echo "=== 10. Content-as-data: no hardcoded prices or shop phone in components ==="
+echo "=== 10. Content-as-data: no hardcoded prices, phone, or stats in components ==="
 # Business facts must flow from src/data/wcc/content.ts (PRD hard-fail #1).
-# The shop phone literal is 290-7476; placeholders like 555-0123 are fine.
-CONTENT_HITS=$(rg -n 'usd\([0-9]|\$[0-9]|290-7476' src/components/ 2>/dev/null || true)
+# The shop phone literal is 290-7476; stats literals are 5.0 / 7,500+ / 16+
+# (BUSINESS.stats). Placeholders like 555-0123 are fine. Cycle 6 (B2): the
+# stats literals were added after the booking success screen hard-coded them.
+CONTENT_HITS=$(rg -n 'usd\([0-9]|\$[0-9]|290-7476|\b5\.0\b|7,500\+|\b16\+' src/components/ 2>/dev/null || true)
 if [ -z "$CONTENT_HITS" ]; then
-  echo "OK  components carry no hardcoded prices / phone"
+  echo "OK  components carry no hardcoded prices / phone / stats"
 else
   echo "FAIL hardcoded business facts in components (use content.ts exports):"
   echo "$CONTENT_HITS"

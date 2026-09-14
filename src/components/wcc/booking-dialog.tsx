@@ -34,6 +34,7 @@ import {
   usd,
   type DayOption,
 } from "@/lib/wcc/booking";
+import { BUSINESS_TZ, todayIsoInTz } from "@/lib/wcc/dates";
 import { useWccDialogs } from "@/lib/wcc/booking-store";
 import {
   BOOKABLE_SERVICES,
@@ -96,7 +97,14 @@ export function BookingDialog() {
     addOnCeramic: false,
   });
 
-  const days: DayOption[] = useMemo(() => (open ? buildDayOptions(new Date(), 14) : []), [open]);
+  // PRD F2.2: the day list starts from the shop's America/New_York "today"
+  // — the calendar the server enforces (Sunday closure, 60-day window) —
+  // not the visitor's local clock, so far-from-ET visitors are never offered
+  // a day the API would reject as "past" (cycle 6, audit B1).
+  const days: DayOption[] = useMemo(
+    () => (open ? buildDayOptions(todayIsoInTz(new Date(), BUSINESS_TZ), 14) : []),
+    [open],
+  );
   const service = findService(form.serviceKey);
   const quote = quoteFor(form.serviceKey, form.vehicleType, form.addOnCeramic);
 
@@ -591,7 +599,7 @@ export function BookingDialog() {
               </p>
               <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
                 <Star className="h-3.5 w-3.5 fill-primary text-primary" aria-hidden="true" />
-                5.0 · 7,500+ vehicles detailed
+                {BUSINESS.stats.rating} · {BUSINESS.stats.vehicles} vehicles detailed
               </p>
               <Button
                 onClick={close}
