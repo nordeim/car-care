@@ -27,8 +27,8 @@ A single-page site built to convert local search traffic into detail appointment
 | 🗄️ Lead persistence | Booking + Question models in SQLite via Prisma; reviewable in Prisma Studio |
 | ✨ Motion with respect | IntersectionObserver scroll reveals, CTA shine sweep — all disabled under `prefers-reduced-motion` |
 | 📱 Mobile call FAB | Floating call button appears after scrolling past the hero (mobile only) |
-| 🧪 Tests | Vitest (69 unit tests: pricing/date logic, validation schemas, rate limiter + IP extraction, DB-URL resolver contract, payload guard, dialog store, JSON-LD serializer) + Playwright (36 e2e tests: smoke, SEO/JSON-LD incl. FAQPage + canonical, booking funnel with DB truth, API contracts incl. 413 + 429 Retry-After, axe a11y) against the standalone production build |
-| 🔍 Local SEO | Full metadata, OG/Twitter cards, canonical link, `theme-color`, **two JSON-LD blocks** (`AutoWash` with url + `FAQPage` generated from `FAQS`), `sitemap.xml`, app icon + `apple-icon.png` + legacy `favicon.ico` |
+| 🧪 Tests | Vitest (72 unit tests: pricing/date logic, validation schemas, rate limiter + IP extraction, DB-URL resolver contract, payload guard, dialog store, JSON-LD serializer) + Playwright (36 e2e tests: smoke, SEO/JSON-LD incl. FAQPage + canonical, booking funnel with DB truth, API contracts incl. 413 + 429 Retry-After, axe a11y) against the standalone production build |
+| 🔍 Local SEO | Full metadata, OG/Twitter cards (incl. `og:locale`), canonical link, `theme-color`, **two JSON-LD blocks** (`AutoWash` with url + `FAQPage` generated from `FAQS`), `sitemap.xml`, app icon + `apple-icon.png` + legacy `favicon.ico` |
 
 ## Architecture
 
@@ -112,12 +112,12 @@ bun run dev            # http://localhost:3000 (metadataBase still live URL)
 1. Open `http://localhost:3000` — the We Care Car Care landing page renders with the hero image and pricing sections.
 2. Click any **Book Now** CTA, walk all 4 steps, submit — you get a `WCC-XXXXXX` confirmation.
 3. `bunx prisma studio` → your row is in the `Booking` table.
-4. `bun run lint` exits clean; `npm test` passes (69 tests); `bun run e2e` passes (36 tests — needs `bun run build` first).
+4. `bun run lint` exits clean; `npm test` passes (72 tests); `bun run e2e` passes (36 tests — needs `bun run build` first).
 
 ### Tests
 
 ```bash
-npm test            # vitest run — 69 unit tests
+npm test            # vitest run — 72 unit tests
 npm run test:watch  # watch mode
 
 # Playwright E2E — runs the standalone production build on :3100.
@@ -185,7 +185,8 @@ Live deploy canonical is `https://car-care.jesspete.shop` (original source ref `
 | Remediation cycle 4 (git invariants + docs truth + audit round 2) | ✅ Done | See `docs/code-review-audit-2026-09-cycle4.md` — `.env`/`db/custom.db` re-tracked by `34a172d` → untracked + regression guard (`skill-verify.sh` check 9); SKILL/PAD/PRD/AGENTS/CLAUDE drift corrected (stale test counts, TZ-unsafe PAD sample, migrations story, SSH path, 8 WebP assets); `bun.lock` identity fixed; content-as-data violations fixed in dialogs (`CERAMIC_ADDON`/`BUSINESS.phone` interpolation) + check-10 guard — 66 unit + 31 e2e green × 3 TZ |
 | PRD + validation report (standalone DB trap fix, live URL) | ✅ Done | See `PRD.md` + `docs/validation-report-PRD.md` — `file:../db/custom.db` cwd-aware resolver, live `https://car-care.jesspete.shop` env-driven SEO (`layout`/`sitemap`/`robots.ts`), lint `set-state-in-effect` off |
 | Remediation cycle 5 (live E2E + SEO parity + audit round 3) | ✅ Done | Live-site E2E re-verified (booking funnel `WCC-XXXXXX`, all API contracts, 429 confirmed, axe 0 violations, CWV TTFB 98ms/LCP 376ms/CLS 0); SEO parity gaps vs source closed — FAQPage JSON-LD (from `FAQS`), canonical link, `AutoWash.url`, `theme-color`, `favicon.ico` + `apple-icon.png` (`scripts/gen-icons.mjs`); audit cycle 5 (`docs/code-review-audit-2026-09-cycle5.md`) PASS — JSON-LD `</script>` hardening (`json-ld.ts`), Caddyfile labeled sandbox-only/do-not-deploy, `Retry-After: 600` on 429s — 69 unit + 36 e2e green |
-| Automated test suite | ✅ Done | Vitest 69 unit (lib/schemas/store/db-url/client-ip/payload/json-ld) + Playwright 36 e2e (smoke/SEO/funnel/API/a11y) |
+| Remediation cycle 6 (live E2E re-verify + og:locale + audit round 4) | ✅ Done | Independent live E2E re-run: all functional tests + API contracts + axe 0 violations + CWV green, pricing parity 13/13 exact vs source; closed the last SEO parity gap — `og:locale: en_US` (e2e-locked); audit cycle 6 (`docs/code-review-audit-2026-09-cycle6.md`) PASS — B1 day-picker anchored to `America/New_York` today per PRD F2.2 (`buildDayOptions` ISO-anchor API), B2 booking success screen interpolates `BUSINESS.stats` (+ check-10 guard now scans stats literals) — 72 unit + 36 e2e green |
+| Automated test suite | ✅ Done | Vitest 72 unit (lib/schemas/store/db-url/client-ip/payload/json-ld) + Playwright 36 e2e (smoke/SEO/funnel/API/a11y) |
 | CI gate (GitHub Actions) | ✅ Done | `.github/workflows/verify-gate.yml` — the documented gate on **every push**: unit ×3 TZ, `tsc`, `lint`, standalone `build`, `e2e` (chromium), `skill-verify.sh` (11 checks); coverage pinned by check 11; no secrets |
 | Admin surface for leads | ❌ Not started | Owner reviews leads via Prisma Studio |
 

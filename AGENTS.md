@@ -14,7 +14,7 @@ Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.
 | `bun run dev` | Dev server on :3000, output tee'd to `dev.log` |
 | `bun run build` | Prod build **and** copies `static` + `public` into `.next/standalone/` — the copy step is required for `start` to work. TypeScript errors **fail** this build |
 | `bun run start` | Runs `.next/standalone/server.js` under bun with `NODE_ENV=production`, logs to `server.log` |
-| `npm test` | Vitest — 69 unit tests in 9 files (`npm run test:watch` for watch mode) |
+| `npm test` | Vitest — 72 unit tests in 9 files (`npm run test:watch` for watch mode) |
 | `bun run e2e` | Playwright — 36 e2e tests on the standalone build (:3100; `bun run build` first; `e2e:all`, `e2e:report` variants) |
 | `bun run lint` | ESLint 9 flat config |
 | `bunx tsc --noEmit` | Typecheck — clean by default now (reference dirs excluded) |
@@ -29,7 +29,7 @@ Package manager is **bun** (`bun.lock`). Node 24 also present but use bun.
 ## Architecture
 
 - **Content lives in one file**: `src/data/wcc/content.ts` — all services, prices, service areas, business facts, FAQs, testimonials. Change pricing/copy there, never in components. `BOOKABLE_SERVICES` is derived from `PACKAGES` / `CERAMIC_TIERS` / `INTERIOR_ONLY` (now with one-line `summary` + `popular` flags) — don't hand-edit it.
-- **Booking logic**: `src/lib/wcc/booking.ts` (`findService`, `quoteFor` — ceramic add-on is flat $200, `buildDayOptions` — Sun closed, 6 slots/day).
+- **Booking logic**: `src/lib/wcc/booking.ts` (`findService`, `quoteFor` — ceramic add-on is flat $200, `buildDayOptions` — ISO-anchor API (business-TZ today; host-TZ independent), Sun closed, 6 slots/day).
 - **Date rules**: `src/lib/wcc/dates.ts` — timezone-safe `isSunday` / `isWithinBookingWindow` (weekday derived from the ISO string via UTC, "today" from `America/New_York` via `Intl`). Never use `new Date(iso).getDay()` (host-TZ dependent) for business rules.
 - **Validation schemas**: `src/lib/wcc/schemas.ts` — the zod schemas for bookings + questions. Single source of truth; the API routes import from here. Update tests in `src/lib/wcc/__tests__/schemas.test.ts` when changing fields.
 - **JSON-LD serializer**: `src/lib/wcc/json-ld.ts` — `jsonLdHtml()` escapes `<` to `\u003c` after stringify so a `</script>` sequence in authored content can never break out of the layout's structured-data blocks (audit cycle 5, A1). Contract-locked by `__tests__/json-ld.test.ts`.
@@ -58,7 +58,7 @@ Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production b
 - ESLint now has `react-hooks/set-state-in-effect: off` — intentional setState in effect for `booking-dialog.tsx` dialog reset and `carousel.tsx` select (see lint gate).
 - **Standalone DB trap:** `src/lib/db.ts` does `process.chdir(__dirname)` in `.next/standalone/server.js`, so naive `file:../db/custom.db` (relative to `prisma/`) would resolve to `standalone/db/custom.db` at runtime. The client now normalizes any `file:*db/custom.db` to an absolute repo-root path (cwd-aware: detects `.next/standalone` and walks up). Keep `.env` as `file:../db/custom.db` (portable); both CLI (`db:push`) and runtime (dev + standalone + E2E) now share one file.
 - **Site URL:** SEO (`metadataBase`, canonical, OG, `sitemap.ts`, `robots.ts`) reads `NEXT_PUBLIC_SITE_URL` / `SITE_URL` (fallback live `https://car-care.jesspete.shop`). `public/robots.txt` is now a static fallback — the dynamic `src/app/robots.ts` is the source of truth.
-- **SEO parity (cycle 5):** `layout.tsx` emits **two** JSON-LD blocks — `AutoWash` (incl. `url`) and `FAQPage` generated from `FAQS` (content.ts single source) — plus `alternates.canonical`, `viewport.themeColor` (#0a0b0d), `src/app/apple-icon.png` (Next auto-link), and `public/favicon.ico` (regenerate the icon assets with `bun scripts/gen-icons.mjs` after touching `src/app/icon.svg`).
+- **SEO parity (cycle 5 + 6):** `layout.tsx` emits **two** JSON-LD blocks — `AutoWash` (incl. `url`) and `FAQPage` generated from `FAQS` (content.ts single source) — plus `alternates.canonical`, `viewport.themeColor` (#0a0b0d), `openGraph.locale: "en_US"` (SEO parity G6, cycle 6), `src/app/apple-icon.png` (Next auto-link), and `public/favicon.ico` (regenerate the icon assets with `bun scripts/gen-icons.mjs` after touching `src/app/icon.svg`).
 - ESLint ignores: `foundation/**`, `scripts/**`, `examples/**`, `skills`, plus build dirs. Many rules are off (sandbox template defaults).
 - `foundation/`, `upload/`, `tool-results/`, `skills/`, `download/`, `db/` are sandbox-local or runtime artifacts and gitignored — never import from or commit them.
 - `examples/websocket/` and `tests/*.sh` are template scaffolding, unrelated to the site.
@@ -80,7 +80,7 @@ Playwright (`playwright.config.ts`, `e2e/`) drives the **standalone production b
 ## Local gate (post-browser, post-cleanup): 
  
 ```bash 
-  npm test          # 69/69 (9 files) — also TZ=UTC / Asia/Singapore green (reran explicitly) 
+  npm test          # 72/72 (9 files) — also TZ=UTC / Asia/Singapore green (reran explicitly) 
   bunx tsc --noEmit # 0 
   bun run lint      # 0 
   bun run build     # Route (app) ○ /, ƒ /api/bookings, ƒ /api/questions, ○ /icon.svg, ○ /sitemap.xml, ○ /robots.txt 
